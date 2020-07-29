@@ -1,0 +1,6 @@
+scipy
+numpy
+pandas
+pyarrow<=0.14.1
+ipython
+treelib==1.6.1

@@ -1,0 +1,13 @@
+{
+  "input": "hdfs://namenode:8020/dataset/usa2018.csv",
+  "output": "hdfs://namenode:8020/anonymized/usa2018.csv",
+  "fraction": 1,
+  "quasiid_columns": ["STATEFIP", "AGE", "EDUCD", "OCC"],
+  "sensitive_column": "INCTOT",
+  "column_score": "span",
+  "fragmentation": "quantile",
+  "K": 3,
+  "L": 2,
+  "quasiid_generalizations": [],
+  "measures": ["discernability_penalty", "global_certainty_penalty"]
+}

@@ -1,0 +1,10 @@
+{
+    "filename": "manual_tests/2dtest.csv",
+    "quasiid_columns": ["QI1", "QI2"],
+    "sensitive_column": "S",
+    "column_score": "span",
+    "K": 3,
+    "L": 3 ,
+    "measures": ["discernability_penalty", "normalized_certainty_penalty", "global_certainty_penalty"],
+    "quasiid_generalizations": null
+}

@@ -1,0 +1,28 @@
+{
+    "cat": "parent",
+    "subcats": [
+	{
+	    "cat": "son",
+	    "subcats": {
+		"cat": "grandchild s1",
+		"subcats": null
+	    }
+	},
+	{
+	    "cat": "daughter",
+	    "subcats": {
+		"cat": "grandchild d1",
+		"subcats": [
+		    {
+			"cat": "daughter gc_d1",
+			"subcats": []			
+		    },
+		    {
+			"cat": "daughter2 gc_d1",
+			"subcats": []			
+		    }
+		]
+	    }
+	}
+    ]
+}

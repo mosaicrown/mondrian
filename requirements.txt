@@ -1,0 +1,9 @@
+wheel
+scipy
+pandas
+jedi
+rope
+autopep8
+yapf
+black
+treelib==1.6.1

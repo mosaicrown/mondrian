@@ -1,0 +1,10 @@
+{
+    "filename": "usa2018.csv",
+    "quasiid_columns": ["STATEFIP", "AGE", "EDUCD", "OCC"],
+    "sensitive_column": "INCTOT",
+    "column_score": "span",
+    "K": 3,
+    "L": 2,
+    "quasiid_generalizations": [],
+    "measures": ["discernability_penalty", "global_certainty_penalty"]
+}

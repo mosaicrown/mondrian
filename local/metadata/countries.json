@@ -1,0 +1,193 @@
+{
+    "cat": "World",
+    "subcats": [
+	{
+	    "cat": "Europe",
+	    "subcats": [
+		{
+		"cat": "?",
+		"subcats": null
+		},
+		{
+		"cat": "Yugoslavia",
+		"subcats": null
+		},
+		{
+		"cat": "Greece",
+		"subcats": null
+		},
+		{
+		"cat": "Ireland",
+		"subcats": null
+		},
+		{
+		"cat": "Hungary",
+		"subcats": null
+		},
+		{
+		"cat": "Holand-Netherlands",
+		"subcats": null
+		},
+		{
+		"cat": "Scotland",
+		"subcats": null
+		},
+		{
+		"cat": "England",
+		"subcats": null
+		},
+		{
+		"cat": "Germany",
+		"subcats": null
+		},
+		{
+		"cat": "Italy",
+		"subcats": null
+		},
+		{
+		"cat": "Poland",
+		"subcats": null
+		},
+		{
+		"cat": "Portugal",
+		"subcats": null
+		},
+		{
+		"cat": "France",
+		"subcats": null
+		}
+	    ]
+	},
+	{
+	    "cat": "North-America",
+	    "subcats": [
+		{
+		"cat": "United-States",
+		"subcats": null
+		},
+		{
+		"cat": "Cuba",
+		"subcats": null
+		},
+		{
+		"cat": "Jamaica",
+		"subcats": null
+		},
+		{
+		"cat": "Mexico",
+		"subcats": null
+		},
+		{
+		"cat": "Puerto-Rico",
+		"subcats": null
+		},
+		{
+		"cat": "Canada",
+		"subcats": null
+		},
+		{
+		"cat": "Haiti",
+		"subcats": null
+		},
+		{
+		"cat": "Honduras",
+		"subcats": null
+		},
+		{
+		"cat": "Guatemala",
+		"subcats": null
+		},
+		{
+		"cat": "Dominican-Republic",
+		"subcats": null
+		},
+		{
+		"cat": "El-Salvador",
+		"subcats": null
+		},
+		{
+		"cat": "Outlying-US(Guam-USVI-etc)",
+		"subcats": null
+		},
+		{
+		"cat": "Nicaragua",
+		"subcats": null
+		},
+		{
+		"cat": "Trinadad&Tobago",
+		"subcats": null
+		}
+	    ]
+	},
+	{
+	    "cat": "South-America",
+	    "subcats": [
+		{
+		"cat": "Columbia",
+		"subcats": null
+		},
+		{
+		"cat": "Ecuador",
+		"subcats": null
+		},
+		{
+		"cat": "Peru",
+		"subcats": null
+		},
+		{
+		"cat": "South",
+		"subcats": null
+		}
+	    ]
+	},
+	{
+	    "cat": "Asia",
+	    "subcats": [
+		{
+		"cat": "Vietnam",
+		"subcats": null
+		},
+		{
+		"cat": "India",
+		"subcats": null
+		},
+		{
+		"cat": "Hong",
+		"subcats": null
+		},
+		{
+		"cat": "China",
+		"subcats": null
+		},
+		{
+		"cat": "Japan",
+		"subcats": null
+		},
+		{
+		"cat": "Philippines",
+		"subcats": null
+		},
+		{
+		"cat": "Iran",
+		"subcats": null
+		},
+		{
+		"cat": "Cambodia",
+		"subcats": null
+		},
+		{
+		"cat": "Thailand",
+		"subcats": null
+		},
+		{
+		"cat": "Laos",
+		"subcats": null
+		},
+		{
+		"cat": "Taiwan",
+		"subcats": null
+		}
+	    ]
+	}
+    ]
+}

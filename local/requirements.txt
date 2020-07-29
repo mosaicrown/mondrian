@@ -1,0 +1,9 @@
+scipy
+pandas
+jedi
+rope
+autopep8
+yapf
+black
+ipython
+treelib==1.6.1
