@@ -1,6 +1,6 @@
 scipy
 numpy
-pandas
+pandas==1.0
 pyarrow<=0.14.1
 ipython
 treelib==1.6.1
