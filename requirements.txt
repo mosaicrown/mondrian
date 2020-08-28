@@ -1,6 +1,6 @@
 wheel
 scipy
-pandas
+pandas==1.0
 jedi
 rope
 autopep8
