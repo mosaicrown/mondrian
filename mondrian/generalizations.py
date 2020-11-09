@@ -131,7 +131,7 @@ def __taxonomize_numeric(spark,
                          debug=False):
     """
     Creates a taxonomy of a pandas numeric column of values
-    WARNING: for numeric values only
+    WARNIN: for numeric values only
     PLEASE 1. Note the following procedure is prone to floating point approximated precision.
        For exact approximation and generalization, please use categorical taxonomies. 2. Negative spanning ranges supported but not yet tested
     """
@@ -146,7 +146,7 @@ def __taxonomize_numeric(spark,
 
     # create the taxonomy of parent nodes
     accuracy = abs(accuracy)
-    maxv, minv, levels, vals, taxonomy = __create_numeric_taxonomy(
+    _, minv, levels, vals, taxonomy = __create_numeric_taxonomy(
         spark=spark,
         df=df,
         colname=col_label,
@@ -155,7 +155,6 @@ def __taxonomize_numeric(spark,
         digits=digits)
 
     # adding the values to the taxonomy (withouth duplicates)
-    length = len(vals)
     nof_leaves = int(math.pow(fanout, levels))
     scale_range = nof_leaves * accuracy
     bucket_offset = 1

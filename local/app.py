@@ -136,7 +136,7 @@ def quantile_fragmentation(df, quasiid_columns, column_score, fragments,
                            colname):
     """Generate a number of fragments by cutting a column over quantiles."""
     scores = [(column_score(df[column]), column) for column in quasiid_columns]
-    for score, column in sorted(scores, reverse=True):
+    for _, column in sorted(scores, reverse=True):
         try:
             quantiles = pd.qcut(df[column], fragments, labels=range(fragments))
             print("{} quantiles generated from '{}'.".format(
@@ -272,11 +272,12 @@ def build_anonymized_dataset(df,
     for i, partition in enumerate(partitions):
         if i % 100 == 0:
             print("Finished {}/{} partitions...".format(i, len(partitions)))
+
         for column in quasiid_columns:
-            adf.loc[partition,
-                    column] = join_column(df[column][partition],
+            generalization = join_column(df[column][partition],
                                           column,
                                           quasiid_gnlts=quasiid_gnlts)
+            adf.loc[partition, column] = [generalization] * len(partition)
 
     return adf
 
@@ -505,7 +506,7 @@ def visualizer(df, columns):
     print("rectangle intervals: {}".format(rectangles))
 
     xvals = []
-    for xs, f in x_segments:
+    for xs, _ in x_segments:
         if xs.startswith('[') and xs.endswith(']'):
             low, high = map(float, xs[1:-1].split('-'))
             xvals.append(low)
@@ -513,7 +514,7 @@ def visualizer(df, columns):
         else:
             xvals.append(float(xs))
     yvals = []
-    for ys, f in y_segments:
+    for ys, _ in y_segments:
         if ys.startswith('[') and ys.endswith(']'):
             low, high = map(float, ys[1:-1].split('-'))
             yvals.append(low)

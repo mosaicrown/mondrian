@@ -282,11 +282,12 @@ def build_anonymized_dataset(df,
     for i, partition in enumerate(partitions):
         if i % 100 == 0:
             print("Finished {}/{} partitions...".format(i, len(partitions)))
+            
         for column in quasiid_columns:
-            adf.loc[partition,
-                    column] = join_column(df[column][partition],
+            generalization = join_column(df[column][partition],
                                           column,
                                           quasiid_gnlts=quasiid_gnlts)
+            adf.loc[partition, column] = [generalization] * len(partition)
 
     return adf
 
@@ -321,7 +322,7 @@ def anonymize(df,
 
 def evaluate_information_loss(adf, udf):
     """Run the PandasUDF on fragments and aggregate the output."""
-    penalties = adf.groupby('fragment').apply(udf)
+    penalties = adf.groupby('fragment').groupby('fragment').applyInPandas(udf.func, udf.returnType)
     penalty = penalties.toPandas().sum()
     return penalty['information_loss']
 
@@ -348,8 +349,7 @@ def extract_span(aggregation, column_name=None, quasiid_gnlts=None):
         low, high = map(float, aggregation[1:-1].split('-'))
         return high - low
     if aggregation.startswith('{') and aggregation.endswith('}'):
-        categories = aggregation[1:-1].split(',')
-        return len(categories)
+        return aggregation[1:-1].count(',') + 1
     return 0
 
 
@@ -464,7 +464,7 @@ def visualizer(df, columns):
     print("rectangle intervals: {}".format(rectangles))
 
     xvals = []
-    for xs, f in x_segments:
+    for xs, _ in x_segments:
         if xs.startswith('[') and xs.endswith(']'):
             low, high = map(float, xs[1:-1].split('-'))
             xvals.append(low)
@@ -472,7 +472,7 @@ def visualizer(df, columns):
         else:
             xvals.append(float(xs))
     yvals = []
-    for ys, f in y_segments:
+    for ys, _ in y_segments:
         if ys.startswith('[') and ys.endswith(']'):
             low, high = map(float, ys[1:-1].split('-'))
             yvals.append(low)
@@ -583,7 +583,7 @@ def main():
     spark.sparkContext.setLogLevel("WARN")
 
     # Enable Arrow-based columnar data transfers
-    spark.conf.set('spark.sql.execution.arrow.enabled', 'true')
+    spark.conf.set('spark.sql.execution.arrow.pyspark.enabled', 'true')
 
     # Share generalization library
     spark.sparkContext.addPyFile("/mondrian/generalizations.py")
@@ -750,7 +750,7 @@ def main():
 
     adf = df \
         .groupby('fragment') \
-        .apply(anonymize_udf) \
+        .applyInPandas(anonymize_udf.func, schema=anonymize_udf.returnType) \
         .cache()
 
     # Create Discernability Penalty udf
@@ -801,7 +801,7 @@ def main():
             print(f"Global Certainty Penalty = {gcp:.4f}")
 
     print(f"\n[*] Writing to {filename_out}\n")
-    df.write \
+    adf.write \
         .mode("overwrite") \
         .options(header=True) \
         .csv(filename_out)

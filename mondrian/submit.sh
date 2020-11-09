@@ -13,14 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+PATH="/opt/bitnami/hadoop/bin:${PATH}"
+
+echo "[*] Exit Hadoop safe mode"
+hdfs dfsadmin -D 'fs.defaultFS=hdfs://namenode:8020' -safemode forceExit
 
 echo "[*] Load dataset to the Hadoop Distributed File System"
-hadoop-2.8.5/bin/hadoop fs -mkdir -p hdfs://namenode:8020/dataset
-hadoop-2.8.5/bin/hadoop fs -put -f ${LOCAL_DATASET} ${HDFS_DATASET}
+hadoop fs -mkdir -p hdfs://namenode:8020/dataset
+hadoop fs -put -f ${LOCAL_DATASET} ${HDFS_DATASET}
 
 echo "[*] Submit Spark Job"
 spark-submit \
     --master ${SPARK_MASTER_URL} \
+    --conf spark.default.parallelism=${SPARK_APP_WORKERS} \
+    --conf spark.sql.shuffle.partitions=${SPARK_APP_WORKERS} \
     --files ${SPARK_FILES} \
     ${SPARK_APP} \
-    ${SPARK_APP_ARGS}
+    ${SPARK_APP_CONFIG} ${SPARK_APP_WORKERS} ${SPARK_APP_DEMO}

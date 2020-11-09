@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-version: '2'
+version: '3'
 
 services:
 
@@ -22,7 +22,7 @@ services:
     environment:
       - SPARK_MODE=master
     ports:
-      - '8080:8080'
+      - 8080:8080
 
   spark-worker:
     build: spark
@@ -35,7 +35,7 @@ services:
       - SPARK_WORKER_CORES=1
 
   namenode:
-    image: bde2020/hadoop-namenode:1.1.0-hadoop2.8-java8
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
     container_name: namenode
     volumes:
       - ./data/namenode:/hadoop/dfs/name
@@ -44,10 +44,10 @@ services:
     env_file:
       - ./hadoop.env
     ports:
-      - 50070:50070
+      - 9870:9870
       
   datanode:
-    image: bde2020/hadoop-datanode:1.1.0-hadoop2.8-java8
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
     depends_on: 
       - namenode
     volumes:
@@ -55,7 +55,7 @@ services:
     env_file:
       - ./hadoop.env
     ports:
-      - 50075:50075
+      - 9864:9864
 
   spark-shell:
     build: spark
@@ -75,7 +75,7 @@ services:
     environment:
       - MASTER=spark://spark-master:7077
     ports:
-      - "8888:8888"
+      - 8888:8888
 
   mondrian-app:
     build: spark

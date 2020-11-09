@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM bitnami/spark:2.4.5
+FROM bitnami/spark:3.0.1
 
 USER root
-RUN curl https://archive.apache.org/dist/hadoop/common/hadoop-2.8.5/hadoop-2.8.5.tar.gz --output hadoop-2.8.5.tar.gz && \
-    tar -xzvf hadoop-2.8.5.tar.gz && \
-    export PATH=$PATH:/opt/bitnami/spark/hadoop-2.8.5/bin
+RUN curl -o hadoop.tar.gz https://archive.apache.org/dist/hadoop/common/hadoop-3.2.1/hadoop-3.2.1.tar.gz && \
+    tar -xzvf hadoop.tar.gz && mv hadoop-3.2.1 ../hadoop && rm hadoop.tar.gz
 
 COPY requirements.txt /tmp/
 RUN ["pip", "install", "--requirement", "/tmp/requirements.txt"]

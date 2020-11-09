@@ -17,7 +17,12 @@ check_deps:
 	$(foreach bin,$(REQUIRED_BINS),\
 		$(if $(shell which $(bin)),,$(error Please install `$(bin)`)))
 
-clean: check_deps
+clean: | _clean_local _clean_docker
+
+_clean_local:
+	make -C local clean
+
+_clean_docker: check_deps
 	@ echo -e "\n[*] Removing docker containers.\n"
 	docker-compose rm --force --stop -v
 	@- rm -f .*.build
@@ -59,7 +64,9 @@ _run _adults: check_deps
 		-e LOCAL_DATASET=/mondrian/adults.csv \
 		-e HDFS_DATASET=hdfs://namenode:8020/dataset/adults.csv \
 		-e SPARK_FILES=/mondrian/adults.json \
-		-e SPARK_APP_ARGS="/mondrian/adults.json $(WORKERS) $(DEMO)" \
+		-e SPARK_APP_CONFIG=/mondrian/adults.json \
+		-e SPARK_APP_WORKERS=$(WORKERS) \
+		-e SPARK_APP_DEMO=$(DEMO) \
 		mondrian-app
 
 usa2018 _usa2018:
@@ -71,7 +78,9 @@ _usa2018: check_deps
 		-e LOCAL_DATASET=/mondrian/usa2018.csv \
 		-e HDFS_DATASET=hdfs://namenode:8020/dataset/usa2018.csv \
 		-e SPARK_FILES=/mondrian/usa2018.json \
-		-e SPARK_APP_ARGS="/mondrian/usa2018.json $(WORKERS)" \
+		-e SPARK_APP_CONFIG=/mondrian/usa2018.json \
+		-e SPARK_APP_WORKERS=$(WORKERS) \
+		-e SPARK_APP_DEMO=$(DEMO) \
 		mondrian-app
 
 
