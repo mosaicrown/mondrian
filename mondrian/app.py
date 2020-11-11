@@ -322,7 +322,7 @@ def anonymize(df,
 
 def evaluate_information_loss(adf, udf):
     """Run the PandasUDF on fragments and aggregate the output."""
-    penalties = adf.groupby('fragment').groupby('fragment').applyInPandas(udf.func, udf.returnType)
+    penalties = adf.groupby('fragment').applyInPandas(udf.func, udf.returnType)
     penalty = penalties.toPandas().sum()
     return penalty['information_loss']
 
