@@ -44,6 +44,7 @@ services:
     env_file:
       - ./hadoop.env
     ports:
+      - 8020:8020
       - 9870:9870
       
   datanode:
