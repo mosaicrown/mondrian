@@ -21,13 +21,11 @@ $(VENV): $(ACTIVATE)
 
 $(ACTIVATE): requirements.txt
 	test -d $(VENV) || $(VIRTUALENV) $(VENV)
-	$(PIP) install wheel
-	$(PYTHON) setup.py bdist_wheel
 	$(PIP) install --upgrade pip
 	$(PIP) install -r $(REQUIREMENTS)
 	@ touch $(ACTIVATE)
 
-run adults:
+run adults: $(VENV)
 	$(PYTHON) $(APP) adults.json $(DEMO)
 
 usa2018: $(VENV)
@@ -35,9 +33,11 @@ usa2018: $(VENV)
 
 clean:
 	@ rm -rf $(VENV)
+	@ find . -path '*/__pycache__/*' -delete
+	@ find . -type d -name '__pycache__' -delete
 
-tests:
+tests: $(VENV)
 	$(PYTHON) $(MANUAL_TESTS)
 
-2dtest:
+2dtest: $(VENV)
 	$(PYTHON) $(APP) "manual_tests/2dtest.json" $(DEMO)
