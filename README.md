@@ -11,6 +11,13 @@ The tool relies on Pandas UDFs and Apache Arrow.
 * [docker](https://docs.docker.com/get-docker/)
 * [docker-compose](https://docs.docker.com/compose/install/)
 
+### USA 2018 dataset
+
+We cannot upload the `usa2018.csv` dataset for [licencing reasons](https://ipums.org/about/terms).
+However you can get your own copy of the data from [https://usa.ipums.org/usa/](https://usa.ipums.org/usa/).
+
+Our data selection is based on the American Community Servey 2018 sample (2018 ACS) with [STATEFIP](https://usa.ipums.org/usa-action/variables/STATEFIP#description_section), [AGE](https://usa.ipums.org/usa-action/variables/AGE#description_section), [EDUC](https://usa.ipums.org/usa-action/variables/EDUC#description_section),[OCC](https://usa.ipums.org/usa-action/variables/OCC#description_section),[INCTOT](https://usa.ipums.org/usa-action/variables/INCTOT#description_section) variables.
+
 ## Run
 
 The Mondrian Docker app can be run with:
