@@ -1,0 +1,37 @@
+{
+    "input": "hdfs://namenode:8020/dataset/adults.csv",
+    "output": "hdfs://namenode:8020/anonymized/adults.csv",
+    "fraction": 1,	
+    "quasiid_columns": ["age", "education-num", "race", "native-country"],
+    "sensitive_column": "income",
+    "column_score": "entropy",
+    "fragmentation": "quantile",
+    "K": 3,
+    "L": 2,
+    "quasiid_generalizations": [
+	{
+	    "qi_name": "native-country",
+	    "generalization_type": "categorical",
+	    "params": {
+		"taxonomy_tree": "/mondrian/taxonomy/countries.json"
+	    }
+	},
+	{
+	    "qi_name": "age",
+	    "generalization_type": "numerical",
+	    "params": {
+		"fanout": 2,
+		"accuracy": 2,
+		"digits": 3
+	    }
+	},
+	{
+	    "qi_name": "education-num",
+	    "generalization_type": "common_prefix",
+	    "params": {
+		"hide-mark": "+"
+	    }
+	}
+    ],
+    "measures": ["discernability_penalty", "global_certainty_penalty"]
+}

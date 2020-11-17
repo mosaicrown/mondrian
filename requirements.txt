@@ -1,9 +1,0 @@
-wheel
-scipy
-pandas==1.0
-jedi
-rope
-autopep8
-yapf
-black
-treelib==1.6.1

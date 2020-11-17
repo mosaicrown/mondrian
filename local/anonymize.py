@@ -1,0 +1,181 @@
+# Copyright 2020 Unibg Seclab (https://seclab.unibg.it)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+import argparse
+import json
+import time
+
+import pandas as pd
+
+from mondrian import generalization as gnrlz
+from mondrian.anonymization import anonymize
+from mondrian.evaluation import discernability_penalty
+from mondrian.evaluation import global_certainty_penalty
+from mondrian.evaluation import normalized_certainty_penalty
+from mondrian.score import entropy, neg_entropy, span
+from mondrian.visualization import visualizer
+
+
+def __generalization_preproc(job, df):
+    """Anonymization preprocessing to arrange generalizations.
+
+    :job: Dictionary job, contains information about generalization methods
+    :df: Dataframe to be anonymized
+    :returns: Dictionary of taxonomies required to perform generalizations
+    """
+    quasiid_gnrlz = dict()
+    if not job['quasiid_generalizations']:
+        return None
+
+    for gen_item in job['quasiid_generalizations']:
+
+        g_dict = dict()
+        g_dict['qi_name'] = gen_item['qi_name']
+        g_dict['generalization_type'] = gen_item['generalization_type']
+        g_dict['params'] = gen_item['params']
+
+        if g_dict['generalization_type'] == 'categorical':
+            # read taxonomy from file
+            t_db = g_dict['params']['taxonomy_tree']
+            if t_db is None:
+                raise gnrlz.IncompleteGeneralizationInfo()
+            taxonomy = gnrlz._read_categorical_taxonomy(t_db)
+            # taxonomy.show()
+            g_dict['taxonomy_tree'] = taxonomy
+        elif g_dict['generalization_type'] == 'numerical':
+            try:
+                fanout = g_dict['params']['fanout']
+                accuracy = g_dict['params']['accuracy']
+                digits = g_dict['params']['digits']
+            except KeyError:
+                raise gnrlz.IncompleteGeneralizationInfo()
+            if fanout is None or accuracy is None or digits is None:
+                raise gnrlz.IncompleteGeneralizationInfo()
+            taxonomy, minv = gnrlz.__taxonomize_numeric(
+                df=df,
+                col_label=g_dict['qi_name'],
+                fanout=int(fanout),
+                accuracy=float(accuracy),
+                digits=int(digits))
+            g_dict['taxonomy_tree'] = taxonomy
+            g_dict['min'] = minv
+            # taxonomy.show()
+            # print("Minv: {}".format(minv))
+        # elif g_dict['generalization_type'] == 'common_prefix':
+        # common_prefix generalization doesn't require taxonomy tree
+
+        quasiid_gnrlz[gen_item['qi_name']] = g_dict
+
+    # return the generalization dictionary
+    return quasiid_gnrlz
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Anonymize a dataset using Mondrian.')
+    parser.add_argument('METADATA', help='json file that describes the job.')
+    parser.add_argument('DEMO',
+                        default=0,
+                        type=int,
+                        help='Launch in demo mode.')
+
+    args = parser.parse_args()
+    demo = args.DEMO
+
+    if demo == 1:
+        print("\n[*] Read configuration file")
+        input("\t Press any key to continue...")
+
+    with open(args.METADATA) as fp:
+        job = json.load(fp)
+
+    start_time = time.time()
+
+    # Parameters
+    filename = job['filename']
+    quasiid_columns = job['quasiid_columns']
+    sensitive_column = job['sensitive_column']
+    if job['column_score'] == 'entropy':
+        column_score = entropy
+    elif job['column_score'] == 'neg_entropy':
+        column_score = neg_entropy
+    else:
+        column_score = span
+    K = job['K']
+    L = job['L']
+    measures = job['measures']
+
+    if demo == 1:
+        print("\n[*] Job info configured")
+        input("\t Press any key to continue...")
+
+    if demo == 1:
+        print("\n[*] Reading the dataset")
+    df = pd.read_csv(filename)
+    print(df.head)
+
+    quasiid_gnrlz = __generalization_preproc(job, df)
+
+    if demo == 1:
+        print("\n[*] Taxonomies info read")
+        input("\t Press any key to continue...\n")
+
+    adf = anonymize(
+        df=df,
+        quasiid_columns=quasiid_columns,
+        sensitive_column=sensitive_column,
+        column_score=entropy if column_score == 'entropy' else span,
+        K=K,
+        L=L,
+        quasiid_gnrlz=quasiid_gnrlz)
+
+    if demo == 1:
+        print("\n[*] Dataset anonymized")
+        input("\t Press any key to continue...")
+
+    print('\n[*] Anonymized dataframe:\n')
+
+    if adf.size < 50:
+        print(adf)
+        visualizer(adf, quasiid_columns)
+    else:
+        print(adf.head)
+
+    if demo == 1 and measures:
+        print("\n[*] Starting evaluate information loss")
+        input("\t Press any key to continue...")
+
+    if measures:
+        print('\n[*] Information loss evaluation\n')
+    for measure in measures:
+        if measure == 'discernability_penalty':
+            dp = discernability_penalty(adf, quasiid_columns)
+            print(f"Discernability Penalty = {dp:.2E}")
+        elif measure == 'normalized_certainty_penalty':
+            ncp = normalized_certainty_penalty(df, adf, quasiid_columns,
+                                               quasiid_gnrlz)
+            print(f"Normalized Certainty Penalty = {ncp:.2E}")
+        elif measure == 'global_certainty_penalty':
+            gcp = global_certainty_penalty(df, adf, quasiid_columns)
+            print(f"Global Certainty Penalty = {gcp:.4f}")
+
+    print('\n[*] Done\n')
+
+    if demo == 0:
+        print("--- %s seconds ---" % (time.time() - start_time))
+
+
+if __name__ == "__main__":
+    main()

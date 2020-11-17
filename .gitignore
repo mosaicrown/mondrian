@@ -185,7 +185,10 @@ flycheck_*.el
 log_dir/log.md
 
 # build files
-/.*.build
+distributed/.*.build
 
 # exclude hadoop data
-/data
+distributed/hdfs
+
+# usa2018 dataset
+usa2018.csv

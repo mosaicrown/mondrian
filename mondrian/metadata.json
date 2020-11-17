@@ -1,5 +1,0 @@
-{
-    "I": [],
-    "QI": ["age", "sex", "education", "race"],
-    "S": ["marital-status", "occupation", "hours-per-week", "capital-loss", "income"]
-}

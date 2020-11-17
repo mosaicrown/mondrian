@@ -13,7 +13,7 @@ The tool relies on Pandas UDFs and Apache Arrow.
 
 ### USA 2018 dataset
 
-We cannot upload the `usa2018.csv` dataset for [licensing reasons](https://ipums.org/about/terms).
+We cannot upload the `usa2018.csv` dataset for [licencing reasons](https://ipums.org/about/terms).
 However you can get your own copy of the data from [https://usa.ipums.org/usa/](https://usa.ipums.org/usa/).
 
 Our data selection is based on the American Community Servey 2018 sample (2018 ACS) with [STATEFIP](https://usa.ipums.org/usa-action/variables/STATEFIP#description_section), [AGE](https://usa.ipums.org/usa-action/variables/AGE#description_section), [EDUC](https://usa.ipums.org/usa-action/variables/EDUC#description_section),[OCC](https://usa.ipums.org/usa-action/variables/OCC#description_section),[INCTOT](https://usa.ipums.org/usa-action/variables/INCTOT#description_section) variables.
@@ -22,12 +22,16 @@ Our data selection is based on the American Community Servey 2018 sample (2018 A
 
 The Mondrian Docker app can be run with:
 
-    make
+```shell
+make
+```
 
 The default workers number is 4, however it can be set with:
 
-    make WORKERS=16
-    
+```shell
+make WORKERS=16
+```
+
 ## About Mondrian
 
 Mondrian is a sanitization algorithm that ensures a dataset to be compliant with the k-anonimity requirement (i.e., each person in a released dataset cannot be distinguished among k or more individuals).
@@ -54,7 +58,7 @@ Here is an example of configuration file.
 {
     "input": "hdfs://namenode:8020/dataset/adults.csv",
     "output": "hdfs://namenode:8020/anonymized/adults.csv",
-    "fraction": 1,	
+    "fraction": 1,
     "quasiid_columns": ["age", "education-num", "race", "native-country"],
     "sensitive_column": "income",
     "column_score": "entropy",
@@ -62,55 +66,55 @@ Here is an example of configuration file.
     "K": 3,
     "L": 3,
     "quasiid_generalizations": [
-	{
-	    "qi_name": "native-country",
-	    "generalization_type": "categorical",
-	    "params": {
-		"taxonomy_tree": "/mondrian/metadata/countries.json"
-	    }
-	},
-	{
-	    "qi_name": "age",
-	    "generalization_type": "numerical",
-	    "params": {
-		"fanout": 2,
-		"accuracy": 2,
-		"digits": 3
-	    }
-	},
-	{
-	    "qi_name": "education-num",
-	    "generalization_type": "common_prefix",
-	    "params": {
-		"hide-mark": "+"
-	    }
-	}
+    {
+        "qi_name": "native-country",
+        "generalization_type": "categorical",
+        "params": {
+            "taxonomy_tree": "/mondrian/taxonomy/countries.json"
+    }
+    },
+    {
+        "qi_name": "age",
+        "generalization_type": "numerical",
+        "params": {
+            "fanout": 2,
+            "accuracy": 2,
+            "digits": 3
+        }
+    },
+    {
+        "qi_name": "education-num",
+        "generalization_type": "common_prefix",
+        "params": {
+        "hide-mark": "+"
+        }
+    }
     ],
     "measures": ["discernability_penalty", "global_certainty_penalty"]
 }
 ```
 
-
-# Functions
+## Functions
 
 The tool supports many functions.
 
 To determine the cut column different functions can be used: span, entropy and negative entropy (to reverse the quasi-identifier order). Partitions cuts are determined using the median.
 
 Multiple generalization methods on quasi-identifiers are available:
-- ranges (e.g., [5 - 10]);
-- sets (e.g., {Private, Public});
-- common prefix (e.g., 100**);
-- using numeric partitioning (a balanced tree constructed from the quasi-identifier numerical data based on fanout, accuracy and digits parameters);
-- using user-defined taxonomies (a taxonomy tree given by the user that guides the generalization of the quasi-identifier values).
+
+* ranges (e.g., [5 - 10]);
+* sets (e.g., {Private, Public});
+* common prefix (e.g., 100**);
+* using numeric partitioning (a balanced tree constructed from the quasi-identifier numerical data based on fanout, accuracy and digits parameters);
+* using user-defined taxonomies (a taxonomy tree given by the user that guides the generalization of the quasi-identifier values).
 
 In both numeric partitioning and user-defined taxonomies the lowest common ancestor is used to generalize the set of values.
 
 Three information loss metrics are available:
-- Discernability penalty;
-- Normalized certainty penalty;
-- Global certainty penalty.
 
+* Discernability penalty;
+* Normalized certainty penalty;
+* Global certainty penalty.
 
 ## Centralized version of Mondrian
 
@@ -120,4 +124,6 @@ It is contained in the local folder and can be used to anonymize limited size da
 The centralized version only relies on pandas and numpy, and it is particularly useful to demonstrate the scalability of Mondrian over large datasets.
 A demo of it can be run with:
 
-    make local-adults
+```shell
+make local-adults
+```

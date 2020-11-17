@@ -1,5 +1,0 @@
-numpy
-pandas
-pyarrow<=0.14.1
-ipython
-jupyter

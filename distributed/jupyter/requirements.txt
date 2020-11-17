@@ -1,0 +1,6 @@
+jupyter
+numpy
+pandas==1.1.3
+pyarrow==2.0.0
+scipy
+treelib==1.6.1
