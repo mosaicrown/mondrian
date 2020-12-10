@@ -12,17 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if __package__:
-    from . import generalization as gnrlz
-    from .mondrian import partition_dataframe
-    from .validation import get_validation_function
-else:
-    import generalization as gnrlz
-    from mondrian import partition_dataframe
-    from validation import get_validation_function
+import generalization as gnrlz
+from mondrian import partition_dataframe
+from validation import get_validation_function
 
 
-# Functions to generate the anonymous dataset
+# Functions to generate the anonymous dataset.
 
 def join_column(ser, dtype, generalization=None):
     """Make a clustered representation of the series in input.
@@ -38,20 +33,18 @@ def join_column(ser, dtype, generalization=None):
         if not generalization:
             raise KeyError
         if generalization['generalization_type'] == 'categorical':
-            return gnrlz.__generalize_to_lcc(values,
-                                             generalization['taxonomy_tree'])
+            return gnrlz.__generalize_to_lcc(
+                values, generalization['taxonomy_tree'])
         elif generalization['generalization_type'] == 'numerical':
             return gnrlz.__generalize_to_lcp(
-                values,
-                generalization['taxonomy_tree'],
+                values, generalization['taxonomy_tree'],
                 generalization['min'],
-                generalization['params']['fanout']
-            )
-        elif generalization['generalization_type'] == 'common_prefix':
+                generalization['params']['fanout'])
+        elif generalization[
+                'generalization_type'] == 'common_prefix':
             return gnrlz.__generalize_to_cp(
                 values,
-                hidemark=generalization['params']['hide-mark']
-            )
+                hidemark=generalization['params']['hide-mark'])
     except KeyError:
         if dtype.name in ('object', 'category'):
             # ...set generalization
@@ -93,7 +86,6 @@ def remove_id(df, id_columns, redact=False):
     if not redact:
         df.drop(columns=id_columns, inplace=True)
     else:
-        # changes columns dtype by its own
         df.loc[:, id_columns] = "REDACTED"
 
     return df
@@ -116,8 +108,8 @@ def anonymize(df,
                                      quasiid_columns=quasiid_columns,
                                      sensitive_columns=sensitive_columns,
                                      column_score=column_score,
-                                     is_valid=get_validation_function(K, L))
+                                     is_valid=get_validation_function(K,L))
     return generalize_quasiid(df=df,
                               partitions=partitions,
                               quasiid_columns=quasiid_columns,
-                              quasiid_gnrlz=quasiid_gnrlz) 
+                              quasiid_gnrlz=quasiid_gnrlz)

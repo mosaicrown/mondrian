@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Anonymization Tool</title>
+        <link href="https://fonts.googleapis.com/css?family=Raleway" rel="stylesheet">
+        <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+        <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+        <script src="{{ url_for('static', filename = 'index.js') }}" type="text/javascript"></script>
+    </head>
+    <body onload="showTab(currentTab)">
+      <form id="regForm">
+      <h1>Job submission successful</h1>
+        <!-- One "tab" for each step in the form: -->
+        <div class="tab">
+            <h3>Your job is being processed</h3>
+            {% if distr %}
+            <label for="history">You can check the job status using the spark history server:</label><br/>
+            <p id="history">
+                <a href="http://localhost:18080" target="_blank">History server</a>
+            </p>
+            <br/>
+            {% endif %}
+            <label for="newJob">You can create another job:</label><br/>
+            <p id="newJob">
+                <a href="http://localhost:5000/">Create another job</a>
+            </p>
+            <br/>
+            <label for="shutdown">Shutdown the demo</label><br/>
+            <p id="shutdown">
+                <a href="http://localhost:5000/shutdown">Shutdown the demo server</a>
+            </p>
+            <br/>
+        </div>
+      </form>
+    </body>
+</html>

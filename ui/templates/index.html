@@ -1,0 +1,42 @@
+{% import 'tab.html' as tabs %}
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Anonymization Tool</title>
+        <link href="https://fonts.googleapis.com/css?family=Raleway" rel="stylesheet">
+        <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+        <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+        <script src="{{ url_for('static', filename = 'index.js') }}" type="text/javascript"></script>
+    </head>
+    <body onload="showTab(currentTab)">
+        <form id="regForm" action="readForm" method="post" enctype="multipart/form-data" >
+            <h1>Anonymization Job Configuration</h1>
+            <!-- One "tab" for each step in the form: -->
+
+            {{ tabs.render_dataset_tab() }}
+            {{ tabs.render_mondrian_tab() }}
+            {{ tabs.render_column_tab() }}
+            {{ tabs.put_generalization_placeholder() }}
+            {{ tabs.render_evalutation() }}
+            {{ tabs.loading() }}
+
+            <div style="overflow:auto;">
+                <div style="float:right;">
+                <button type="button" id="prevBtn" onclick="nextPrev(-1)">Previous</button>
+                <button type="button" id="nextBtn" onclick="nextPrev(1)">Next</button>
+                </div>
+            </div>
+            <!-- Circles which indicates the steps of the form: -->
+            <div style="text-align:center;margin-top:40px;">
+              {# change also this for when adding new configuration tabs #}
+              {%- for row in range(0,5) %}
+                <span class="step"></span>
+              {%- endfor %}
+            </div>
+        </form>
+        <script>document.getElementById('distribDataset').addEventListener('change', extractColumns, false)</script>
+        <script>document.getElementById('localDataset').addEventListener('change', extractColumns, false)</script>
+    </body>
+</html>

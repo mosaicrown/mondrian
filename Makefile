@@ -1,6 +1,9 @@
-.PHONY: all addlicense clean start stop up down run _run shell _shell web _web local local-adults adults _adults local-usa2018 usa2018 _usa2018
+.PHONY: all addlicense clean start stop up down ui run _run shell _shell notebook _notebook local local-adults adults _adults local-usa2018 usa2018 _usa2018
+
+.DEFAULT_GOAL  := all
 
 SHELL          := /bin/bash
+MAKE		   := make --no-print-directory
 
 LICENSE_TYPE   := "apache"
 LICENSE_HOLDER := "Unibg Seclab (https://seclab.unibg.it)"
@@ -9,51 +12,67 @@ addlicense:
 	go get -u github.com/google/addlicense
 	$(shell go env GOPATH)/bin/addlicense -c $(LICENSE_HOLDER) -l $(LICENSE_TYPE) .
 
-clean: | _clean_local _clean_docker
+clean: | _clean_local _clean_docker _clean_ui
+
+# graphical user interface
+ui:
+	@ $(MAKE) -C ui
+
+_clean_ui:
+	@ $(MAKE) -C ui clean
 
 # local
 local local-adults:
-	make -C local adults
+	@ $(MAKE) -C local adults
 
 local-usa2018:
-	make -C local usa2018
+	@ $(MAKE) -C local usa2018
+
+local-poker:
+	@ $(MAKE) -C local poker
 
 _clean_local:
-	make -C local clean
+	@ $(MAKE) -C local clean
 
 # distributed
 all:
-	make -C distributed run
+	@ $(MAKE) -C distributed run
 
 start up: 
-	make -C distributed start
+	@ $(MAKE) -C distributed start
 
 stop down:
-	make -C distributed stop
+	@ $(MAKE) -C distributed stop
 
 shell:
-	make -C distributed shell
+	@ $(MAKE) -C distributed shell
 
 _shell: 
-	make -C distributed _shell
+	@ $(MAKE) -C distributed _shell
 
-web:
-	make -C distributed web
+notebook:
+	@ $(MAKE) -C distributed notebook
 
-_web:
-	make -C distributed _web
+_notebook:
+	@ $(MAKE) -C distributed _notebook
 
 run adults:
-	make -C distributed adults
+	@ $(MAKE) -C distributed adults
 
 _run _adults:
-	make -C distributed _adults
+	@ $(MAKE) -C distributed _adults
 
 usa2018:
-	make -C distributed usa2018
+	@ $(MAKE) -C distributed usa2018
 
 _usa2018:
-	make -C distributed _usa2018
+	@ $(MAKE) -C distributed _usa2018
+
+poker:
+	@ $(MAKE) -C distributed poker
+
+_poker:
+	@ $(MAKE) -C distributed _poker
 
 _clean_docker:
-	make -C distributed clean
+	@ $(MAKE) -C distributed clean

@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if __package__:
-    from .score import span
-else:
-    from score import span
-
 
 # Functions to evaluate the information loss
+
+def evaluate_information_loss(adf, udf):
+    """Run the PandasUDF on fragments and aggregate the output."""
+    penalties = adf.groupby('fragment').applyInPandas(udf.func, udf.returnType)
+    penalty = penalties.toPandas().sum()
+    return penalty['information_loss']
+
 
 def extract_span(aggregation, column_name=None, quasiid_gnrlz=None):
     if column_name and quasiid_gnrlz[column_name][
@@ -42,17 +44,15 @@ def extract_span(aggregation, column_name=None, quasiid_gnrlz=None):
         low, high = map(float, aggregation[1:-1].split('-'))
         return high - low
     if aggregation.startswith('{') and aggregation.endswith('}'):
-        categories = aggregation[1:-1].split(',')
-        return len(categories)
+        return aggregation[1:-1].count(',') + 1
     return 0
 
 
-def normalized_certainty_penalty(df, adf, quasiid_columns, quasiid_gnrlz=None):
+def normalized_certainty_penalty(adf,
+                                 quasiid_columns,
+                                 quasiid_range,
+                                 quasiid_gnrlz=None):
     # compute dataset-level range on the quasi-identifiers columns
-    qi_range = [-1] * len(quasiid_columns)
-    for i, column in enumerate(quasiid_columns):
-        qi_range[i] = span(df[column])
-
     partitions = adf.groupby(quasiid_columns)
 
     ncp = 0
@@ -64,20 +64,17 @@ def normalized_certainty_penalty(df, adf, quasiid_columns, quasiid_gnrlz=None):
         for column_idx, column in enumerate(quasiid_columns):
             if quasiid_gnrlz and column in quasiid_gnrlz:
                 rncp += extract_span(row[column], column,
-                                     quasiid_gnrlz) / qi_range[column_idx]
+                                     quasiid_gnrlz) / quasiid_range[column_idx]
             else:
-                rncp += extract_span(row[column]) / qi_range[column_idx]
+                rncp += extract_span(row[column]) / quasiid_range[column_idx]
         rncp *= len(partition)
         ncp += rncp
+
     return ncp
 
 
-def global_certainty_penalty(df, adf, quasiid_columns, quasiid_gnrlz):
-    ncp = normalized_certainty_penalty(df, adf, quasiid_columns, quasiid_gnrlz)
-    return ncp / (len(quasiid_columns) * len(adf))
-
-
 def discernability_penalty(adf, quasiid_columns):
+    """Compute Discernability Penalty (DP)."""
     sizes = adf.groupby(quasiid_columns).size()
 
     dp = 0

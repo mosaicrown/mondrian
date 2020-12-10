@@ -1,10 +1,10 @@
 {
-    "filename": "dataset/2dtest.csv",
+    "input": "dataset/2dtest.csv",
+    "output": "anonymized/2dtest.csv",
     "quasiid_columns": ["QI1", "QI2"],
-    "sensitive_column": "S",
+    "sensitive_columns": ["S"],
     "column_score": "span",
     "K": 3,
     "L": 3 ,
-    "measures": ["discernability_penalty", "normalized_certainty_penalty", "global_certainty_penalty"],
-    "quasiid_generalizations": null
+    "measures": ["discernability_penalty", "normalized_certainty_penalty", "global_certainty_penalty"]
 }

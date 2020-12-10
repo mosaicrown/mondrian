@@ -12,20 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Functions to evaluate if a partition is valid #
+import scipy.stats
 
 
-def is_k_anonymous(df, partition, sensitive_column, K):
-    """Check if a partition is k-anonymous."""
-    return len(partition) >= K
+# Functions to evaluate the cut-score of a column
+
+def entropy(ser):
+    """Calculate the entropy of the passed `pd.Series`."""
+    counts = ser.value_counts()
+    return scipy.stats.entropy(counts)
 
 
-def is_l_diverse(df, partition, sensitive_column, L):
-    """Check if a partition is l-diverse."""
-    return df[sensitive_column][partition].nunique() >= L
+def neg_entropy(ser):
+    """Revert the entropy sign to invert the column ordering."""
+    return -entropy(ser)
 
 
-def is_k_l_valid(df, partition, sensitive_column, K, L):
-    """Check if a partition is both k-anonymous and l-diverse."""
-    return is_k_anonymous(df, partition, sensitive_column, K) \
-        and is_l_diverse(df, partition, sensitive_column, L)
+def span(ser):
+    """Calculate the span of the passed `pd.Series`."""
+    if ser.dtype.name in ('object', 'category'):
+        return ser.nunique()
+    else:
+        return ser.max() - ser.min()

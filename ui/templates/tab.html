@@ -1,0 +1,119 @@
+{# each macro is used to render a specific tab #}
+
+{% macro render_dataset_tab() -%}
+{# macro to render the dataset configuration tab #}
+<div class="tab">
+    <h3>Dataset</h3>
+    <label for="exec">Type of execution:</label><br/>
+    <p id="exec">
+        <input type="radio" onchange="hide('distrib');show('local');" id="local" name="distrib" value="false">
+        <label for="local">Local</label><br/>
+        <input type="radio" onchange="hide('local');show('distrib');" id="distributed" name="distrib" value="true" checked>
+        <label for="local">Distrubuted</label><br/>
+    </p>
+    <br/>
+    <div class="local">
+        <label for="input">Dataset</label><br/>
+        <p><input type="file" id="localDataset" oninput="this.className = ''" name="input" enctype="multipart/form-data" /></p>
+        <label for="output">Anonymized dataset</label><br/>
+        <p><input placeholder="Path to dataset..." oninput="this.className = ''" name="output"></p>
+    </div>
+    <div class="distrib">
+        <label for="local_dataset">Local dataset</label><br/>
+        <p><input type="file" id="distribDataset" oninput="this.className = ''" name="local_dataset" enctype="multipart/form-data" /></p>
+        <label for="input">Distributed dataset</label><br/>
+        <p><input placeholder="URL to dataset..." oninput="this.className = ''" name="input"></p>
+        <label for="output">Distributed anonymized dataset</label><br/>
+        <p><input placeholder="URL to dataset..." oninput="this.className = ''" name="output"></p>
+    </div>
+</div>
+{%- endmacro %}
+
+{% macro render_mondrian_tab() -%}
+{# macro to render the Mondrian parameters configuration tab #}
+<div class="tab">
+    <h3>Mondrian parameters</h3>
+    <div class="distrib">
+        <label for="workers">Number of Workers</label><br/>
+        <p><input type="number" placeholder="A positive integer value..." oninput="this.className = ''" min=1 id='workers' name="workers"></p>
+        <label for="fraction">Fraction</label><br/>
+        <p><input type="number" placeholder="A number between 0 and 1..." oninput="this.className = ''" onchange='checkFractionValue()' min=0 step=0.05 max=1 id='fractionInput' name="fraction"></p>
+        <label for="fragmentation">Fragmentation</label></br>
+        <p><select id="fragmentation" name="fragmentation">
+            <option value="mondrian">Mondrian</option>
+            <option value="quantile">Quantile</option>
+        </select></p>
+    </div>
+    <label for="column_score">Column scoring function</label><br/>
+    <p><select id="column_score" name="column_score">
+        <option value="entropy">Entropy</option>
+        <option value="neg_entropy">Negative Entropy</option>
+        <option value="span">Span</option>
+    </select></p>
+    <label for="technique">Anonymization technique:</label><br/>
+    <p id="technique">
+        <input type="checkbox" onchange="toggle('k-anonymity')" id="k-anonymity" name="k-anonymity" value="on">
+        <label for="k-anonymity">k-anonymity</label><br/>
+        <input type="checkbox" onchange="toggle('l-diversity')" id="l-diversity" name="l-diversity" value="on">
+        <label for="l-diversity">l-diversity</label><br/>
+        <div class="k-anonymity">
+            <label for="k">K</label><br/>
+            <p><input type="number" placeholder="A positive integer value..." oninput="this.className = ''" min=1 id="k" name="k"></p>
+        </div>
+        <div class="l-diversity">
+            <label for="l">L</label><br/>
+            <p><input type="number" placeholder="A positive integer value..." oninput="this.className = ''" min=1 id="l" name="l"></p>
+        </div>
+    </p>
+</div>
+{%- endmacro %}
+
+{% macro render_column_tab() -%}
+{# macro to render the identifiers, quasiid and sensitive columns configuration tab #}
+<div class="tab">
+    <h3>Identifiers, Quasi-identifiers and Sensitive Attributes</h3>
+    <label for="identifiers">Identifiers</label><br/>
+    <p><select multiple id="identifiers" name="identifiers" oninput="this.className = ''"></select></p>
+    <p></p><label for="redact">Redact</label>
+    <input type=checkbox id="redact" name="redact" value="on"></p>
+    <label for="quasi-identifiers">Quasi-identifiers</label><br/>
+    <p><select multiple id="quasi-identifiers" name="quasi-identifiers" oninput="this.className = ''"></select></p>
+    <div class="l-diversity">
+        <label for="sensitive">Sensitive Attributes</label><br/>
+        <p><select multiple id="sensitive" name="sensitive" oninput="this.className = ''"></select></p>
+    </div>
+</div>
+{%- endmacro %}
+
+{% macro put_generalization_placeholder() -%}
+{# macro to render the placeholder for the generalization configuration tab #}
+<div class="tab" id='taxTab'>
+    <h3>Set generalization techniques</h3>
+</div>
+{%- endmacro %}
+
+{% macro render_evalutation() -%}
+{# macro to render the evaluation configuration tab #}
+<div class="tab">
+    <h3>Evaluation</h3>
+    <label for="info_loss_measures">Information loss measures</label><br/>
+    <p id="info_loss_measures">
+        <input type="checkbox" id="dp" name="dp" value="on">
+        <label for="dp">Discernability Penalty</label><br/>
+        <input type="checkbox" id="ncp" name="ncp" value="on">
+        <label for="ncp">Normalized Certainty Penalty</label><br/>
+        <input type="checkbox" id="gcp" name="gcp" value="on">
+        <label for="gcp">Global Certainty Penalty</label>
+    </p>
+</div>
+{%- endmacro %}
+
+{% macro loading() -%}
+{# macro to render the loading tab #}
+<div class="tab">
+    <h3>Your job is being processed</h3>
+    <p>
+        <div class="spinning-loader" style="margin:auto;padding=30px"></div>
+    </p>
+</div>
+{%- endmacro %}

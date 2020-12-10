@@ -60,7 +60,7 @@ Here is an example of configuration file.
     "output": "hdfs://namenode:8020/anonymized/adults.csv",
     "fraction": 1,
     "quasiid_columns": ["age", "education-num", "race", "native-country"],
-    "sensitive_column": "income",
+    "sensitive_columns": ["income"],
     "column_score": "entropy",
     "fragmentation": "quantile",
     "K": 3,

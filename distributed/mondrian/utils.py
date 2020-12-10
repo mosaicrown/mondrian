@@ -12,25 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import scipy.stats
+
+def get_extension(filename):
+    _, sep, extension = filename.rpartition(".")
+    if not sep:
+        extension = None
+    return extension
 
 
-# Functions to evaluate the cut-score of a column #
-
-def entropy(ser):
-    """Calculate the entropy of the passed `pd.Series`."""
-    counts = ser.value_counts()
-    return scipy.stats.entropy(counts)
+def customPartitioner(el):
+	return el
 
 
-def neg_entropy(ser):
-    """Revert the entropy sign to invert the column ordering."""
-    return -entropy(ser)
-
-
-def span(ser):
-    """Calculate the span of the passed `pd.Series`."""
-    if ser.dtype.name in ('object', 'category'):
-        return ser.nunique()
-    else:
-        return ser.max() - ser.min()
+def repartition_dataframe(df, spark):
+    df = spark.createDataFrame(df.rdd.map(lambda r : (r['fragment'], r))\
+    .partitionBy(df.rdd.getNumPartitions(), customPartitioner)\
+    .map(lambda r : r[1]))\
+    .toDF(*df.columns)
+    return df

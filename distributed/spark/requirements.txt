@@ -1,4 +1,5 @@
 ipython
+jupyter
 numpy
 pandas==1.1.3
 pyarrow==2.0.0

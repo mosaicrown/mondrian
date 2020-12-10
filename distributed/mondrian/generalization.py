@@ -12,16 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import treelib
-import math
-
-import pandas as pd
-
 import json
-import sys
+import math
+from collections import defaultdict
 
-from pyspark.ml.feature import Bucketizer
-from pyspark.sql import SparkSession
+import numpy as np
+import pandas as pd
+import treelib
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
 
@@ -59,10 +56,7 @@ def __create_numeric_taxonomy(spark, df, colname, fanout, accuracy, digits):
     :digits: The number of decimals to be used to for partition boundaries
     :returns: The taxonomy of nodes, plus some useful metadata
     """
-    # column data extraction
-    from pyspark.sql import functions as F
-
-    
+    # column data extraction    
     maxv = df.select([F.max(f"{colname}")]).collect()[0][f'max({colname})']
     minv = df.select([F.min(f"{colname}")]).collect()[0][f'min({colname})']
     # print(f"\n[*]Maxvalue: {maxv}\n")
@@ -195,8 +189,6 @@ def __generalize_to_lcp(values, taxonomy, taxonomy_min_val, fanout):
     :returns: The partition range (string) to be used to generalize the values 
     """
 
-    from collections import defaultdict
-
     if not isinstance(values, set):
         # ensures duplicates removal
         values = set(values)
@@ -270,9 +262,6 @@ def _read_categorical_taxonomy(taxonomy_json, debug=False):
     :returns: The taxonomy tree
     """
     # test setting
-    import json
-    import treelib
-
     db = ""
     with open(taxonomy_json) as f:
         db = json.load(f)
@@ -312,8 +301,6 @@ def __generalize_to_lcc(values, taxonomy):
     :taxonomy: The taxonomy the values belongs to
     :returns: The partition range (string) to be used to generalize the values 
     """
-
-    from collections import defaultdict
 
     if not isinstance(values, set):
         # ensures duplicates removal
@@ -373,9 +360,6 @@ def __generalize_to_cp(ser=None, debug=False, hidemark="*", t=None):
     """
     # first implementation (easy solution)
     # check empty column
-    import pandas as pd
-    import numpy as np
-
     if ser is not None:
         col = np.unique(ser)
     else:

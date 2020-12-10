@@ -13,12 +13,13 @@ PACKAGES       := mondrian
 REQUIREMENTS   := requirements.txt
 APP            := anonymize.py
 MANUAL_TESTS   := test/generalization_tests.py
+OUTPUT_DIR	   := anonymized
 
 DEMO	       := 0
 
 all: run
 
-$(VENV): $(ACTIVATE)
+$(VENV) venv: $(ACTIVATE)
 
 $(ACTIVATE): $(REQUIREMENTS) $(PACKAGES)
 	test -d $(VENV) || $(VIRTUALENV) $(VENV)
@@ -26,11 +27,17 @@ $(ACTIVATE): $(REQUIREMENTS) $(PACKAGES)
 	$(PIP) install -r $(REQUIREMENTS)
 	@ touch $(ACTIVATE)
 
-run adults: $(VENV)
+$(OUTPUT_DIR):
+	mkdir -p $(OUTPUT_DIR)
+
+run adults: $(VENV) $(OUTPUT_DIR)
 	$(PYTHON) $(APP) config/adults.json $(DEMO)
 
-usa2018: $(VENV)
+usa2018: $(VENV) $(OUTPUT_DIR)
 	$(PYTHON) $(APP) config/usa2018.json $(DEMO)
+
+poker: $(VENV) $(OUTPUT_DIR)
+	$(PYTHON) $(APP) config/poker-hand-testing.json $(DEMO)
 
 clean:
 	@ rm -rf $(VENV)
@@ -40,5 +47,5 @@ clean:
 tests: $(VENV)
 	$(PYTHON) $(MANUAL_TESTS)
 
-2dtest: $(VENV)
+2dtest: $(VENV) $(OUTPUT_DIR)
 	$(PYTHON) $(APP) config/2dtest.json $(DEMO)

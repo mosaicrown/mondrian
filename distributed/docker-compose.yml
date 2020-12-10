@@ -34,6 +34,25 @@ services:
       - SPARK_WORKER_MEMORY=2G
       - SPARK_WORKER_CORES=1
 
+  spark-driver:
+    build: spark
+    container_name: spark-driver
+    depends_on:
+      - namenode
+      - datanode
+      - spark-master
+      - spark-worker
+    volumes:
+      - ./:/mondrian
+    environment:
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_EVENT_DIR=hdfs://namenode:8020/spark-events
+      - SPARK_APP_PYFILES=/mondrian/mondrian.zip
+      - SPARK_APP=/mondrian/anonymize.py
+    ports:
+      - 4040:4040
+      - 8888:8888
+
   namenode:
     image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
     container_name: namenode
@@ -66,40 +85,6 @@ services:
     volumes:
       - ./:/mondrian
     command: /mondrian/script/init.sh
-
-  spark-shell:
-    build: spark
-    depends_on:
-      - spark-master
-      - spark-worker
-    command: pyspark
-    environment:
-      - PYSPARK_DRIVER_PYTHON=ipython
-      - MASTER=spark://spark-master:7077
-
-  jupyter:
-    build: jupyter
-    depends_on:
-      - spark-master
-      - spark-worker
-    environment:
-      - MASTER=spark://spark-master:7077
-    ports:
-      - 8888:8888
-
-  mondrian-app:
-    build: spark
-    depends_on:
-      - namenode
-      - datanode
-      - spark-master
-      - spark-worker
-    command: /mondrian/script/submit.sh
-    volumes:
-      - ./:/mondrian
-    environment:
-      - SPARK_MASTER_URL=spark://spark-master:7077
-      - SPARK_APP=/mondrian/code/app.py
 
   spark-history-server:
     build: spark

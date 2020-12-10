@@ -1,4 +1,3 @@
-#!/bin/bash
 # Copyright 2020 Unibg Seclab (https://seclab.unibg.it)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PATH="/opt/bitnami/hadoop/bin:${PATH}"
+# Make all the files available as submodules.
+from . import form_management
+from . import shell_management
 
-echo "[*] Exit Hadoop safe mode"
-hdfs dfsadmin -D 'fs.defaultFS=hdfs://namenode:8020' -safemode forceExit
-
-echo -e "\n[*] Create expected directory structure"
-hadoop fs -mkdir -p hdfs://namenode:8020/dataset
-hadoop fs -mkdir -p hdfs://namenode:8020/spark-events
+# Allow 'from mosaicrown import *' syntax.
+__all__ = [
+    "form_management",
+    "shell_management"
+]

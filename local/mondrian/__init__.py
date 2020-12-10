@@ -18,7 +18,6 @@ from . import evaluation
 from . import generalization
 from . import mondrian
 from . import score
-from . import utils
 from . import validation
 from . import visualization
 
@@ -29,7 +28,6 @@ __all__ = [
     "generalization",
     "mondrian",
     "score",
-    "utils",
     "validation",
     "visualization",
 ]

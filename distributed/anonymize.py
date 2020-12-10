@@ -12,101 +12,83 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import print_function
+import argparse
+import functools
+import json
+import sys
+import time
 
 import pandas as pd
-
 from pyspark.ml.feature import Bucketizer
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
 
-import argparse
-import functools
-import json
-import os
-import sys
-import time
-
+import generalization as gnrlz
 from anonymization import anonymize
-from dataframe_operations import repartition_dataframe
-from evaluation import discernability_penalty, normalized_certainty_penalty, evaluate_information_loss
-from mondrian_operations import mondrian_fragmentation, quantile_fragmentation, create_fragments,\
-    get_fragments_quantiles, __generalization_preproc
-from scores import entropy, neg_entropy, span
-
-from validation import is_k_l_valid
-
-
-
-def get_extension(filename):
-    _, sep, extension = filename.rpartition(".")
-    if not sep:
-        extension = None
-    return extension
+from evaluation import discernability_penalty
+from evaluation import evaluate_information_loss
+from evaluation import normalized_certainty_penalty
+from fragmentation import create_fragments
+from fragmentation import get_fragments_quantiles
+from fragmentation import mondrian_fragmentation
+from fragmentation import quantile_fragmentation
+from score import entropy, neg_entropy, span
+from utils import get_extension, repartition_dataframe
+from test import write_test_params
+from validation import get_validation_function
 
 
-def write_test_params(spark_session, measures, filename):
-    """Function to write test configuration and macro-results to Hadoop
+def __generalization_preproc(job, df, spark):
+    """Anonymization preprocessing to arrange generalizations.
 
-    :spark_session: The current Spark session
-    :measures: The dictionary of parameters logged to Hadoop
-    :filename: The Hadoop target file
+    :job: Dictionary job, contains information about generalization methods
+    :df: Dataframe to be anonymized
+    :spark: Spark instance
+    :returns: Dictionary of taxonomies required to perform generalizations
     """
-    from collections import namedtuple
-    parameters = "timestamp fragments repartition K L fraction DP NCP GCP time"
-    test_res_row = namedtuple("test_res_row", parameters.split())
+    if 'quasiid_generalizations' not in job:
+        return None
 
-    list_of_parameters = [*parameters.split(" ")]
-    ordered_values = []
-    for k in list_of_parameters:
-        if k in measures:
-            ordered_values.append(str(measures[k]))
-        else:
-            ordered_values.append("")
-    test_results = [test_res_row(*ordered_values)]
+    quasiid_gnrlz = dict()
 
-    writing_mode = "overwrite"
-    from pyspark.sql.utils import AnalysisException
-    try:
-        testfile = spark_session.read \
-        .options(header='true', inferSchema='true') \
-        .format("csv").load(filename)
-        writing_mode = "append"
-    except AnalysisException as HadoopFileNotPresetError:
-        print(f"\t -> new target file created: {filename}")
-        pass
+    for gen_item in job['quasiid_generalizations']:
+        g_dict = dict()
+        g_dict['qi_name'] = gen_item['qi_name']
+        g_dict['generalization_type'] = gen_item['generalization_type']
+        g_dict['params'] = gen_item['params']
 
-    # Write test_results to HDFS
-    print("\n")
-    test_results_df = spark_session.createDataFrame(test_results)
-    test_results_df.select(list_of_parameters).show(2)
-    test_results_df.write \
-        .mode(writing_mode) \
-        .options(header=True) \
-        .format("csv") \
-        .save(filename)
+        if g_dict['generalization_type'] == 'categorical':
+            # read taxonomy from file
+            t_db = g_dict['params']['taxonomy_tree']
+            if t_db is None:
+                raise gnrlz.IncompleteGeneralizationInfo()
+            taxonomy = gnrlz._read_categorical_taxonomy(t_db)
+            g_dict['taxonomy_tree'] = taxonomy
+        elif g_dict['generalization_type'] == 'numerical':
+            try:
+                fanout = g_dict['params']['fanout']
+                accuracy = g_dict['params']['accuracy']
+                digits = g_dict['params']['digits']
+            except KeyError:
+                raise gnrlz.IncompleteGeneralizationInfo()
+            if fanout is None or accuracy is None or digits is None:
+                raise gnrlz.IncompleteGeneralizationInfo()
+            taxonomy, minv = gnrlz.__taxonomize_numeric(
+                spark=spark,
+                df=df,
+                col_label=g_dict['qi_name'],
+                fanout=int(fanout),
+                accuracy=float(accuracy),
+                digits=int(digits))
+            g_dict['taxonomy_tree'] = taxonomy
+            g_dict['min'] = minv
 
-    # debug written configuration values
-    _visualize_csv_util(spark_session, filename, list_of_parameters)
+        quasiid_gnrlz[gen_item['qi_name']] = g_dict
 
-def _visualize_csv_util(spark_session, filename, list_of_parameters):
-    """Internal utility to visualize the test configuration and macro-results written to Hadoop
+    # return the generalization dictionary
+    return quasiid_gnrlz
 
-    :spark_session: The current Spark session
-    :filename: The Hadoop target file
-    :list_of_parameters: Ordered list of parameters to be printed
-    """
-    from pyspark.sql.utils import AnalysisException
-    print("[*] Recap last 20 runs (or less)")
-    try:
-        df = spark_session.read \
-        .options(header='true', inferSchema='true') \
-        .format("csv").load(filename)
-        df.select(list_of_parameters).show(20)
-    except AnalysisException as HadoopFileNotPresetError:
-        print(f"\t -> new target file created: {filename}")
-        pass
 
 def main():
     # Parse arguments from command line
@@ -121,9 +103,14 @@ def main():
                         default=0,
                         type=int,
                         help='Start tool in demo mode')
+    parser.add_argument('TEST',
+                        default=0,
+                        type=int,
+                        help='Start tool in test mode')
     
     args = parser.parse_args()
     demo = args.DEMO
+    test = args.TEST
     
     start_time = time.time()
 
@@ -141,15 +128,6 @@ def main():
     # Enable Arrow-based columnar data transfers
     spark.conf.set('spark.sql.execution.arrow.pyspark.enabled', 'true')
 
-    # Share generalization library
-    spark.sparkContext.addPyFile("/mondrian/code/generalizations.py")
-    spark.sparkContext.addPyFile("/mondrian/code/anonymization.py")
-    spark.sparkContext.addPyFile("/mondrian/code/dataframe_operations.py")
-    spark.sparkContext.addPyFile("/mondrian/code/evaluation.py")
-    spark.sparkContext.addPyFile("/mondrian/code/mondrian_operations.py")
-    spark.sparkContext.addPyFile("/mondrian/code/scores.py")
-    spark.sparkContext.addPyFile("/mondrian/code/validation.py")
-
     if demo == 1:
         print("\n[*] Spark context initialized")
         print("\tWait for 10 seconds to continue demo...")
@@ -158,30 +136,57 @@ def main():
     # Parameters
     filename_in = job['input']
     filename_out = job['output']
-    repartition = job['repartition'] if 'repartition' in job and job['repartition'] in {'customRepartition', 'repartitionByRange', 'noRepartition'} else 'repartitionByRange'
+    # when repartition is not given it defaults to repartitionByRange
+    if 'repartition' in job and \
+        job['repartition'] in {'customRepartition',
+                               'repartitionByRange',
+                               'noRepartition'}:
+        repartition = job['repartition']
+    else:
+        repartition = 'repartitionByRange'
+    id_columns = job.get('id_columns', [])
+    redact = job.get('redact', False)
     quasiid_columns = job['quasiid_columns']
-    sensitive_column = job['sensitive_column']
-    if job['column_score'] == 'entropy':
-        column_score = entropy
-    elif job['column_score'] == 'neg_entropy':
-        column_score = neg_entropy
+    sensitive_columns = job.get('sensitive_columns')
+    # when column score is not given it defaults to span
+    score_functions = {'span': span,
+                       'entropy': entropy,
+                       'neg_entropy': neg_entropy}
+    if 'column_score' in job and job['column_score'] in score_functions:
+        column_score = score_functions[job['column_score']]
     else:
         column_score = span
     fragments = min(args.WORKERS, job.get('max_fragments', 10**6))
-    K = job['K']
-    L = job['L']
-    measures = job['measures']
+    K = job.get('K')
+    L = job.get('L')
+    measures = job.get('measures', [])
 
     # Setup mondrian_fragmentation function
-    is_valid = functools.partial(is_k_l_valid, K=K, L=L)
     mondrian = functools.partial(mondrian_fragmentation,
-                                 sensitive_column=sensitive_column,
-                                 is_valid=is_valid)
+                                 sensitive_columns=sensitive_columns,
+                                 is_valid=get_validation_function(K,L))
 
-    fragmentation = quantile_fragmentation \
-        if job['fragmentation'] == 'quantile' else mondrian
+    # when fraction is not given it defaults to None
+    if 'fraction' in job and 0 < job['fraction'] < 1:
+        fraction = job['fraction']
+    else:
+        fraction = None
 
-    fraction = job['fraction'] if 0 < job['fraction'] < 1 else None
+    # when fragmentation is not given it defaults to quantile_fragmentation
+    fragmentation_functions = {'mondrian': mondrian,
+                               'quantile': quantile_fragmentation}
+    if 'fragmentation' in job and \
+            job['fragmentation'] in fragmentation_functions:
+        fragmentation = fragmentation_functions[job['fragmentation']]
+    else:
+        fragmentation = quantile_fragmentation
+
+    if not K and not L:
+        raise Exception("Both K and L parameters not given or equal to zero.")
+    if L and not sensitive_columns:
+        raise Exception(
+            "l-diversity needs to know which columns are sensitive."
+        )
 
     if fraction and fragmentation == mondrian:
         sys.exit('''Sorry, currently mondrian fregmentation criteria is only
@@ -202,7 +207,7 @@ def main():
         .format(extension).load(filename_in)
 
     if fraction:
-        df = df.sample(fraction=fraction, seed=0)
+        df = df.sample(fraction=fraction)
     pdf = df.toPandas()
     pdf.info()
 
@@ -263,8 +268,7 @@ def main():
             df = bucketizer.transform(df)
         else:
             # otherwise assign every row to bucket 0
-            from pyspark.sql.functions import lit
-            df = df.withColumn('fragment', lit(0.0))
+            df = df.withColumn('fragment', F.lit(0.0))
 
         # Check first cut
         sizes = df.groupBy('fragment').count()
@@ -285,9 +289,19 @@ def main():
                  for cname in quasiid_columns)
         quasiid_range = df.agg(*funcs).collect()[0]
 
-    # Create a schema in which the quasi identifiers are strings.
+    # Create a schema in which identifiers are either not there or strings
+    # and quasi identifiers are strings.
     # This is needed because the result of the UDF has to generalize them.
-    schema = T.StructType(df.schema)
+    if not redact:
+        schema = T.StructType(
+            df.select(
+                [column for column in df.columns if column not in id_columns]
+            ).schema
+        )
+    else:
+        schema = T.StructType(df.schema)
+        for column in id_columns:
+            schema[column].dataType = T.StringType()
     for column in quasiid_columns:
         schema[column].dataType = T.StringType()
 
@@ -301,7 +315,6 @@ def main():
         time.sleep(10)
 
     # initialize taxonomies
-    quasiid_gnrlz = None
     quasiid_gnrlz = __generalization_preproc(job, df, spark=spark)
 
     if demo == 1 and quasiid_gnrlz:
@@ -313,8 +326,10 @@ def main():
     @F.pandas_udf(schema, F.PandasUDFType.GROUPED_MAP)
     def anonymize_udf(pdf):
         adf = anonymize(df=pdf,
+                        id_columns=id_columns,
+                        redact=redact,
                         quasiid_columns=quasiid_columns,
-                        sensitive_column=sensitive_column,
+                        sensitive_columns=sensitive_columns,
                         column_score=column_score,
                         K=K,
                         L=L,
@@ -413,6 +428,9 @@ def main():
             print(f"Global Certainty Penalty = {gcp:.4f}")
             measures_log["GCP"] = gcp
 
+    # Remove fragmentation information
+    adf = adf.drop('fragment')
+
     # Write file according to extension
     print(f"\n[*] Writing to {filename_out}\n")
     extension = get_extension(filename_out)
@@ -427,9 +445,10 @@ def main():
     measures_log["timestamp"] = end_time
     measures_log["time"] = execution_time
 
-    # Write test params to Hadoop
-    print("[*] Creating test configuration file on Hadoop")
-    write_test_params(spark, measures_log, "hdfs://namenode:8020/anonymized/test_results.csv")
+    if test == 1:
+        # Write test params to Hadoop
+        print("[*] Creating test configuration file on Hadoop")
+        write_test_params(spark, measures_log, "hdfs://namenode:8020/anonymized/test_results.csv")
 
     if demo == 0:
         print("--- %s seconds ---" % (execution_time))

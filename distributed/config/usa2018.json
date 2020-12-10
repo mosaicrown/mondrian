@@ -1,20 +1,14 @@
 {
-    "input": "hdfs://namenode:8020/dataset/usa2018.csv",
-    "output": "hdfs://namenode:8020/anonymized/usa2018.csv",
-    "fraction": 0.05,
-    "quasiid_columns": ["STATEFIP", "AGE", "EDUCD", "OCC"],
-    "sensitive_column": "INCTOT",
-    "column_score": "span",
-    "fragmentation": "quantile",
-    "repartition": "repartitionByRange",
-    "K": 5,
-    "L": 2,
-    "quasiid_generalizations": [{
-        "qi_name": "EDUCD",
-        "generalization_type": "common_prefix",
-        "params": {
-            "hide-mark": "+"
-        }
-    }],
-    "measures": ["discernability_penalty", "normalized_certainty_penalty", "global_certainty_penalty"]
+  "input": "hdfs://namenode:8020/dataset/usa2018.csv",
+  "output": "hdfs://namenode:8020/anonymized/usa2018.csv",
+  "fraction": 0.001,
+  "quasiid_columns": ["STATEFIP", "AGE", "EDUCD", "OCC"],
+  "sensitive_columns": ["INCTOT"],
+  "column_score": "span",
+  "fragmentation": "quantile",
+  "repartition": "repartitionByRange",
+  "K": 5,
+  "L": 2,
+  "quasiid_generalizations": [],
+  "measures": ["discernability_penalty", "normalized_certainty_penalty", "global_certainty_penalty"]
 }

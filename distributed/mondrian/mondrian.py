@@ -39,12 +39,11 @@ def cut_column(ser):
         rv = set(values[median_idx:])
         dfl = ser.index[ser.isin(lv)]
         dfr = ser.index[ser.isin(rv)]
-        median = "obj-cat"
     else:
         median = ser.median()
         dfl = ser.index[ser < median]
         dfr = ser.index[ser >= median]
-    return (dfl, dfr, median)
+    return (dfl, dfr)
 
 
 def partition_dataframe(df,
@@ -59,35 +58,25 @@ def partition_dataframe(df,
     finished_partitions = []
     # puts a range index obj (start, end, step) into a list
     partitions = [df.index]
-    partitions_number = 1
 
     while partitions and len(partitions) < num_partitions:
-        print('Partitions: {}, '.format(len(partitions)), end='')
+        print('Partitions: {}, '.format(len(partitions)))
         partition = partitions.pop(0)
-        # ...determine its score
         scores = [(column_score(df[column][partition]), column)
                   for column in quasiid_columns]
 
-        # let's try to cut a column with the highest score...
-        # if it's possible, then let's cut it and try to cut again
-        # otherwise skip to next column available
-        # If no valid cut is found, then return the whole partition
         for score, column in sorted(scores, reverse=True):
-            lp, rp, median = cut_column(df[column][partition])
-            if not (is_valid(df, lp, sensitive_columns)
-                    and is_valid(df, rp, sensitive_columns)):
+            lp, rp = cut_column(df[column][partition])
+            if not is_valid(df, lp, sensitive_columns) or \
+                    not is_valid(df, rp, sensitive_columns):
                 continue
-            partitions_number += 1
-            print('cutting over column:', column, '(', 'score:', score,
-                  'median:', median, 'partition:', partitions_number, ')')
+            print('cutting over column: {} (score: {})'.format(column, score))
             partitions.append(lp)
             partitions.append(rp)
             break
 
         else:
-            # if break is skipped, then no valid cut for the partition was found
-            # then the whole partition needs to be generalized
-            #           finished_cuts( (partition,column) )
+            # no valid cut found
             finished_partitions.append(partition)
             print('No valid cut for this partition. Keeping it intact.')
     return finished_partitions if num_partitions == float(

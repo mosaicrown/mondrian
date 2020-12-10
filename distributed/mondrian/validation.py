@@ -29,7 +29,7 @@ def get_validation_function(K, L):
 # Functions to evaluate if a partition is valid
 
 def is_k_anonymous(df, partition, sensitive_columns, K):
-    """Check if the number of values of a columns is k-numerous."""
+    """Check if a partition is k-anonymous."""
     return len(partition) >= K
 
 

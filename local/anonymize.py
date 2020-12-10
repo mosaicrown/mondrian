@@ -35,12 +35,12 @@ def __generalization_preproc(job, df):
     :df: Dataframe to be anonymized
     :returns: Dictionary of taxonomies required to perform generalizations
     """
-    quasiid_gnrlz = dict()
-    if not job['quasiid_generalizations']:
+    if 'quasiid_generalizations' not in job:
         return None
 
-    for gen_item in job['quasiid_generalizations']:
+    quasiid_gnrlz = dict()
 
+    for gen_item in job['quasiid_generalizations']:
         g_dict = dict()
         g_dict['qi_name'] = gen_item['qi_name']
         g_dict['generalization_type'] = gen_item['generalization_type']
@@ -104,18 +104,30 @@ def main():
     start_time = time.time()
 
     # Parameters
-    filename = job['filename']
+    input = job['input']
+    output = job['output']
+    id_columns = job.get('id_columns', [])
+    redact = job.get('redact', False)
     quasiid_columns = job['quasiid_columns']
-    sensitive_column = job['sensitive_column']
-    if job['column_score'] == 'entropy':
-        column_score = entropy
-    elif job['column_score'] == 'neg_entropy':
-        column_score = neg_entropy
+    sensitive_columns = job.get('sensitive_columns', [])
+    # when column score is not given it defaults to span
+    score_functions = {'span': span,
+                       'entropy': entropy,
+                       'neg_entropy': neg_entropy}
+    if 'column_score' in job and job['column_score'] in score_functions:
+        column_score = score_functions[job['column_score']]
     else:
         column_score = span
-    K = job['K']
-    L = job['L']
-    measures = job['measures']
+    K = job.get('K')
+    L = job.get('L')
+    measures = job.get('measures', [])
+
+    if not K and not L:
+        raise Exception("Both K and L parameters not given or equal to zero.")
+    if L and not sensitive_columns:
+        raise Exception(
+            "l-diversity needs to know which columns are sensitive."
+        )
 
     if demo == 1:
         print("\n[*] Job info configured")
@@ -123,7 +135,7 @@ def main():
 
     if demo == 1:
         print("\n[*] Reading the dataset")
-    df = pd.read_csv(filename)
+    df = pd.read_csv(input)
     print(df.head)
 
     quasiid_gnrlz = __generalization_preproc(job, df)
@@ -134,9 +146,11 @@ def main():
 
     adf = anonymize(
         df=df,
+        id_columns=id_columns,
+        redact=redact,
         quasiid_columns=quasiid_columns,
-        sensitive_column=sensitive_column,
-        column_score=entropy if column_score == 'entropy' else span,
+        sensitive_columns=sensitive_columns,
+        column_score=column_score,
         K=K,
         L=L,
         quasiid_gnrlz=quasiid_gnrlz)
@@ -168,8 +182,13 @@ def main():
                                                quasiid_gnrlz)
             print(f"Normalized Certainty Penalty = {ncp:.2E}")
         elif measure == 'global_certainty_penalty':
-            gcp = global_certainty_penalty(df, adf, quasiid_columns)
+            gcp = global_certainty_penalty(df, adf, quasiid_columns,
+                                           quasiid_gnrlz)
             print(f"Global Certainty Penalty = {gcp:.4f}")
+
+    # Write file according to extension
+    print(f"\n[*] Writing to {output}")
+    adf.to_csv(output, index=False)
 
     print('\n[*] Done\n')
 

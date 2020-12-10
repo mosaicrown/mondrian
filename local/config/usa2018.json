@@ -1,10 +1,19 @@
 {
-    "filename": "dataset/usa2018.csv",
+    "input": "dataset/usa2018.csv",
+    "output": "anonymized/usa2018.csv",
     "quasiid_columns": ["STATEFIP", "AGE", "EDUCD", "OCC"],
-    "sensitive_column": "INCTOT",
+    "sensitive_columns": ["INCTOT"],
     "column_score": "span",
     "K": 3,
     "L": 2,
-    "quasiid_generalizations": [],
-    "measures": ["discernability_penalty", "global_certainty_penalty"]
+    "quasiid_generalizations": [
+        {
+	    "qi_name": "EDUCD",
+	    "generalization_type": "common_prefix",
+	    "params": {
+		"hide-mark": "+"
+	    }
+	}
+    ],
+    "measures": []
 }

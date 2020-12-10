@@ -1,9 +1,11 @@
 {
     "input": "hdfs://namenode:8020/dataset/adults.csv",
     "output": "hdfs://namenode:8020/anonymized/adults.csv",
-    "fraction": 1,	
+	"fraction": 1,
+	"id_columns": ["capital-loss", "capital-gain"],
+	"redact": true,
     "quasiid_columns": ["age", "education-num", "race", "native-country"],
-    "sensitive_column": "income",
+    "sensitive_columns": ["income"],
     "column_score": "entropy",
     "fragmentation": "quantile",
     "K": 3,

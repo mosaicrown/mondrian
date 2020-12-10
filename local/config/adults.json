@@ -1,7 +1,10 @@
 {
-    "filename": "dataset/adults.csv",
+	"input": "dataset/adults.csv",
+	"output": "anonymized/adults.csv",
+	"id_columns": ["capital-loss", "capital-gain"],
+	"redact": true,
     "quasiid_columns": ["age", "education-num", "race", "native-country"],
-    "sensitive_column": "income",
+    "sensitive_columns": ["income"],
     "column_score": "neg_entropy",
     "K": 3,
     "L": 2,

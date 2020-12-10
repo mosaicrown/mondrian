@@ -14,7 +14,6 @@
 
 import json
 import math
-import sys
 from collections import defaultdict
 
 import numpy as np

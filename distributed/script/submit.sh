@@ -15,15 +15,28 @@
 
 PATH="/opt/bitnami/hadoop/bin:${PATH}"
 
-echo "[*] Load dataset to the Hadoop Distributed File System"
-hadoop fs -put -f ${LOCAL_DATASET} ${HDFS_DATASET}
+if [[ -n ${LOCAL_DATASET} && -n ${HDFS_DATASET} ]]
+then
+    echo "[*] Load dataset to the Hadoop Distributed File System"
+    hadoop fs -put -f ${LOCAL_DATASET} ${HDFS_DATASET}
+fi
 
 echo "[*] Submit Spark Job"
 spark-submit \
     --master ${SPARK_MASTER_URL} \
-    --conf "spark.eventLog.enabled=true" \
-    --conf "spark.eventLog.dir=hdfs://namenode:8020/spark-events" \
+    --conf spark.eventLog.enabled=true \
+    --conf spark.scheduler.mode=FIFO \
+    --conf spark.eventLog.dir=${SPARK_EVENT_DIR} \
     --conf spark.default.parallelism=${SPARK_APP_WORKERS} \
     --conf spark.sql.shuffle.partitions=${SPARK_APP_WORKERS} \
+    --conf spark.cores.max=${SPARK_APP_WORKERS} \
+    --conf spark.deploy.defaultCores=${SPARK_APP_WORKERS} \
+    --py-files ${SPARK_APP_PYFILES} \
     ${SPARK_APP} \
-    ${SPARK_APP_CONFIG} ${SPARK_APP_WORKERS} ${SPARK_APP_DEMO}
+    ${SPARK_APP_CONFIG} ${SPARK_APP_WORKERS} ${SPARK_APP_DEMO} ${SPARK_APP_TEST}
+
+if [[ -n ${HDFS_ANONYMIZED_DATASET} && -n ${LOCAL_ANONYMIZED_DATASET} ]]
+then
+    echo "[*] Write anonyized dataset to local file system"
+    hadoop fs -getmerge ${HDFS_ANONYMIZED_DATASET} ${LOCAL_ANONYMIZED_DATASET}
+fi
