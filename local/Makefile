@@ -37,7 +37,7 @@ usa2018: $(VENV) $(OUTPUT_DIR)
 	$(PYTHON) $(APP) config/usa2018.json $(DEMO)
 
 poker: $(VENV) $(OUTPUT_DIR)
-	$(PYTHON) $(APP) config/poker-hand-testing.json $(DEMO)
+	$(PYTHON) $(APP) config/poker.json $(DEMO)
 
 clean:
 	@ rm -rf $(VENV)

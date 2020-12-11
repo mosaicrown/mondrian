@@ -1,0 +1,19 @@
+{
+    "input": "dataset/poker.csv",
+    "output": "anonymized/poker.data",
+    "id_columns": [],
+    "redact": false,
+    "quasiid_columns": [
+        "s1", "r1", "s2", "r2", "s3", "r3", "s4", "r4", "s5", "r5"
+    ],
+    "sensitive_columns": ["hand"],
+    "column_score": "entropy",
+    "fragmentation": "mondrian",
+    "K": 160,
+    "L": 3,
+    "measures": [
+        "discernability_penalty",
+        "normalized_certainty_penalty",
+        "global_certainty_penalty"
+    ]
+}

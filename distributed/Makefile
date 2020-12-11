@@ -53,11 +53,7 @@ _shell: check_deps
 
 shell: | start _shell stop
 
-.notebook.build: $(shell find notebook -type f)
-	docker-compose build notebook
-	@ touch $@
-
-_notebook: check_deps .notebook.build
+_notebook: check_deps
 	@ echo -e "\n[*] Running jupyter notebook.\n"
 	- docker exec \
 		-it \
@@ -110,14 +106,14 @@ _usa2018: check_deps $(PACKAGE_ZIP) $(OUTPUT_DIR)
 
 poker: | start _poker stop
 _poker: check_deps $(PACKAGE_ZIP) $(OUTPUT_DIR)
-	@ echo -e "\n[*] Running mondrian on dataset/usa2018.csv.\n"
+	@ echo -e "\n[*] Running mondrian on dataset/poker.csv.\n"
 	- docker exec \
 		-t \
-		-e LOCAL_DATASET=/mondrian/dataset/poker-hand-testing.data \
+		-e LOCAL_DATASET=/mondrian/dataset/poker.csv \
 		-e HDFS_DATASET=hdfs://namenode:8020/dataset/poker.csv \
 		-e HDFS_ANONYMIZED_DATASET=hdfs://namenode:8020/anonymized/poker.csv \
-		-e LOCAL_ANONYMIZED_DATASET=/mondrian/anonymized/poker.data \
-		-e SPARK_APP_CONFIG=/mondrian/config/poker-hand-testing.json \
+		-e LOCAL_ANONYMIZED_DATASET=/mondrian/anonymized/poker.csv \
+		-e SPARK_APP_CONFIG=/mondrian/config/poker.json \
 		-e SPARK_APP_WORKERS=$(WORKERS) \
 		-e SPARK_APP_DEMO=$(DEMO) \
 		-e SPARK_APP_TEST=$(TEST) \

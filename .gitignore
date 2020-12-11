@@ -192,3 +192,10 @@ distributed/hdfs
 
 # usa2018 dataset
 usa2018.csv
+
+# zip
+*.zip
+
+# output of the anonymization process
+local/anonymized
+distributed/anonymized
