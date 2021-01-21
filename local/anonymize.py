@@ -144,6 +144,10 @@ def main():
         print("\n[*] Taxonomies info read")
         input("\t Press any key to continue...\n")
 
+    qi_range = [-1] * len(quasiid_columns)
+    for i, column in enumerate(quasiid_columns):
+        qi_range[i] = span(df[column])
+
     adf = anonymize(
         df=df,
         id_columns=id_columns,
@@ -179,13 +183,12 @@ def main():
             print(f"Discernability Penalty = {dp:.2E}")
         elif measure == 'normalized_certainty_penalty':
             ncp = normalized_certainty_penalty(df, adf, quasiid_columns,
-                                               quasiid_gnrlz)
+                                               qi_range, quasiid_gnrlz)
             print(f"Normalized Certainty Penalty = {ncp:.2E}")
         elif measure == 'global_certainty_penalty':
             gcp = global_certainty_penalty(df, adf, quasiid_columns,
-                                           quasiid_gnrlz)
+                                           qi_range, quasiid_gnrlz)
             print(f"Global Certainty Penalty = {gcp:.4f}")
-
     # Write file according to extension
     print(f"\n[*] Writing to {output}")
     adf.to_csv(output, index=False)

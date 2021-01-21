@@ -47,12 +47,8 @@ def extract_span(aggregation, column_name=None, quasiid_gnrlz=None):
     return 0
 
 
-def normalized_certainty_penalty(df, adf, quasiid_columns, quasiid_gnrlz=None):
+def normalized_certainty_penalty(df, adf, quasiid_columns, qi_range, quasiid_gnrlz=None):
     # compute dataset-level range on the quasi-identifiers columns
-    qi_range = [-1] * len(quasiid_columns)
-    for i, column in enumerate(quasiid_columns):
-        qi_range[i] = span(df[column])
-
     partitions = adf.groupby(quasiid_columns)
 
     ncp = 0
@@ -72,8 +68,8 @@ def normalized_certainty_penalty(df, adf, quasiid_columns, quasiid_gnrlz=None):
     return ncp
 
 
-def global_certainty_penalty(df, adf, quasiid_columns, quasiid_gnrlz):
-    ncp = normalized_certainty_penalty(df, adf, quasiid_columns, quasiid_gnrlz)
+def global_certainty_penalty(df, adf, quasiid_columns, qi_range, quasiid_gnrlz):
+    ncp = normalized_certainty_penalty(df, adf, quasiid_columns, qi_range, quasiid_gnrlz)
     return ncp / (len(quasiid_columns) * len(adf))
 
 

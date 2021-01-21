@@ -70,6 +70,10 @@ def get_fragments_quantiles(df, quasiid_columns, column_score, fragments):
     for _, column in sorted(scores, reverse=True):
         try:
             quantiles = df[column].quantile(np.linspace(0, 1, fragments + 1))
+            # avoid having duplicate quantiles
+            if len(set(quantiles)) != len(quantiles):
+                continue
+
             print("{} quantiles generated from '{}'.".format(
                 fragments, column))
             return column, quantiles.values
