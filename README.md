@@ -32,6 +32,17 @@ The default workers number is 4, however it can be set with:
 make WORKERS=16
 ```
 
+## Web interface
+To test the tool with your own datasets you can use our [web interface](./ui/README.md). To run it use:
+
+```shell
+make ui
+```
+The default number of workers available to do your anonymization job is 4, however it can be changed with:
+```shell
+make ui WORKERS=16
+```
+
 ## About Mondrian
 
 Mondrian is a sanitization algorithm that ensures a dataset to be compliant with the k-anonimity requirement (i.e., each person in a released dataset cannot be distinguished among k or more individuals).
