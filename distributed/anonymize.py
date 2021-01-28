@@ -107,11 +107,11 @@ def main():
                         default=0,
                         type=int,
                         help='Start tool in test mode')
-    
+
     args = parser.parse_args()
     demo = args.DEMO
     test = args.TEST
-    
+
     start_time = time.time()
 
     with open(args.METADATA) as fp:
@@ -213,7 +213,7 @@ def main():
 
     print('\n[*] Fragmentation details\n')
 
-    
+
     """
     TODO: Avoid having a single node performing this step for the whole dataset
     """
@@ -341,22 +341,22 @@ def main():
             adf[column] = adf[column].astype('object')
 
         return adf
-  
+
     if repartition == 'repartitionByRange':
         df = df.repartitionByRange('fragment')
     elif repartition == 'customRepartition':
         df = repartition_dataframe(df, spark)
-   	
+
     print('\n[*] Starting anonymizing the dataframe\n')
     print('Number of DF partitions: {}'.format(df.rdd.getNumPartitions()))
-    
-    ''' Debug spark partitioning -> Low performance 
+
+    ''' Debug spark partitioning -> Low performance
     count = 0
     for elem in df.rdd.glom().collect():
        print("Size of Spark Partition {}: {}".format(count, len(elem)))
        count +=1
     '''
-    
+
     adf = df \
         .groupby('fragment') \
         .applyInPandas(anonymize_udf.func, schema=anonymize_udf.returnType) \
@@ -390,7 +390,7 @@ def main():
     	adf = adf.repartitionByRange('fragment')
     elif repartition == 'customRepartition':
     	adf = repartition_dataframe(adf, spark)
-    	
+
     print('Number of ADF partitions: {}'.format(adf.rdd.getNumPartitions()))
     adf.drop('fragment').show(10)
 
@@ -420,7 +420,7 @@ def main():
             ncp = evaluate_information_loss(adf,
                                             normalized_certainty_penalty_udf)
             print(f"Normalized Certainty Penalty = {ncp:.2E}")
-            measures_log["NCP"] = ncp      
+            measures_log["NCP"] = ncp
         elif measure == 'global_certainty_penalty':
             gcp = evaluate_information_loss(adf,
                                             normalized_certainty_penalty_udf)
@@ -447,8 +447,10 @@ def main():
 
     if test == 1:
         # Write test params to Hadoop
+        test_result_files = ["hdfs://namenode:8020/anonymized/test_results.csv",
+         "hdfs://namenode:8020/anonymized/artifact_result.csv"]
         print("[*] Creating test configuration file on Hadoop")
-        write_test_params(spark, measures_log, "hdfs://namenode:8020/anonymized/test_results.csv")
+        write_test_params(spark, measures_log, test_result_files)
 
     if demo == 0:
         print("--- %s seconds ---" % (execution_time))
@@ -456,6 +458,6 @@ def main():
     spark.stop()
     print('\n[*] Done\n')
 
-    
+
 if __name__ == "__main__":
     main()

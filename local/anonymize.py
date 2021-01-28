@@ -26,6 +26,7 @@ from mondrian.evaluation import global_certainty_penalty
 from mondrian.evaluation import normalized_certainty_penalty
 from mondrian.score import entropy, neg_entropy, span
 from mondrian.visualization import visualizer
+from mondrian.test import result_handler
 
 
 def __generalization_preproc(job, df):
@@ -102,6 +103,8 @@ def main():
         job = json.load(fp)
 
     start_time = time.time()
+    # Measures
+    test_measures = {}
 
     # Parameters
     input = job['input']
@@ -122,12 +125,17 @@ def main():
     L = job.get('L')
     measures = job.get('measures', [])
 
+    if K:
+        test_measures["K"] = K
+
     if not K and not L:
         raise Exception("Both K and L parameters not given or equal to zero.")
-    if L and not sensitive_columns:
-        raise Exception(
-            "l-diversity needs to know which columns are sensitive."
-        )
+    if L:
+        test_measures["L"] = L
+        if not sensitive_columns:
+            raise Exception(
+                "l-diversity needs to know which columns are sensitive."
+            )
 
     if demo == 1:
         print("\n[*] Job info configured")
@@ -181,23 +189,28 @@ def main():
         if measure == 'discernability_penalty':
             dp = discernability_penalty(adf, quasiid_columns)
             print(f"Discernability Penalty = {dp:.2E}")
+            test_measures["DP"] = dp
         elif measure == 'normalized_certainty_penalty':
             ncp = normalized_certainty_penalty(df, adf, quasiid_columns,
                                                qi_range, quasiid_gnrlz)
             print(f"Normalized Certainty Penalty = {ncp:.2E}")
+            test_measures["NCP"] = ncp
         elif measure == 'global_certainty_penalty':
             gcp = global_certainty_penalty(df, adf, quasiid_columns,
                                            qi_range, quasiid_gnrlz)
             print(f"Global Certainty Penalty = {gcp:.4f}")
+            test_measures["GCP"] = gcp
     # Write file according to extension
     print(f"\n[*] Writing to {output}")
     adf.to_csv(output, index=False)
 
     print('\n[*] Done\n')
-
+    end_time = time.time()
     if demo == 0:
-        print("--- %s seconds ---" % (time.time() - start_time))
-
+        print("--- %s seconds ---" % (end_time - start_time))
+    test_measures["time"] = (end_time - start_time)
+    test_measures["timestamp"] = end_time
+    result_handler(test_measures)
 
 if __name__ == "__main__":
     main()

@@ -190,12 +190,20 @@ distributed/.*.build
 # exclude hadoop data
 distributed/hdfs
 
-# usa2018 dataset
-usa2018.csv
-
 # zip
 *.zip
 
-# output of the anonymization process
+# gunzip
+*.gz
+
+# output of the local version
 local/anonymized
 distributed/anonymized
+
+# Artifact temp file
+usa_*.csv
+percom_artifact_experiments/loss_measures.csv
+percom_artifact_experiments/plot.dat
+percom_artifact_experiments/plot.pdf
+percom_artifact_experiments/plot2.dat
+percom_artifact_experiments/usa2018.json

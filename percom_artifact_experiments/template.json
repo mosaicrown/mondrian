@@ -1,0 +1,14 @@
+{
+  "input": "hdfs://namenode:8020/dataset/usa2018.csv",
+  "output": "hdfs://namenode:8020/anonymized/usa2018.csv",
+  fractionX,
+  "quasiid_columns": ["STATEFIP", "AGE", "EDUCD", "OCC"],
+  "sensitive_columns": ["INCTOT"],
+  "column_score": "span",
+  fragmentationX,
+  "repartition": "repartitionByRange",
+  "K": kParam,
+  "L": lParam,
+  "quasiid_generalizations": [],
+  "measures": [measuresX]
+}

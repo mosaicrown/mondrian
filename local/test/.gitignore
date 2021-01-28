@@ -1,0 +1,5 @@
+# Artifact test results
+test_centralized_results.csv
+
+# Keep this file
+!.gitignore

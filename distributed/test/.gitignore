@@ -1,0 +1,6 @@
+# Artifact test results
+test_results.csv
+.test_results.csv.crc
+
+# Keep this file
+!.gitignore

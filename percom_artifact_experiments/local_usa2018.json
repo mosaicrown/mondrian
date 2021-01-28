@@ -1,0 +1,11 @@
+{
+    "input": "dataset/usa2018.csv",
+    "output": "anonymized/usa2018.csv",
+    "quasiid_columns": ["STATEFIP", "AGE", "EDUCD", "OCC"],
+    "sensitive_columns": ["INCTOT"],
+    "column_score": "span",
+    "K": kParam,
+    "L": lParam,
+    "quasiid_generalizations": [],
+    "measures": [measuresX]
+}

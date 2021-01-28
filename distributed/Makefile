@@ -1,4 +1,4 @@
-.PHONY: all addlicense clean start stop up down run _run shell _shell notebook _notebook usa2018 _usa2018 poker _poker
+.PHONY: all addlicense clean start stop up down run _run shell _shell notebook _notebook usa2018 _usa2018 poker _poker usa1990 _usa1990 swarm-start deploy add_workers swarm-adults swarm-stop
 
 SHELL              	:= /bin/bash
 REQUIRED_BINS      	:= docker docker-compose
@@ -15,9 +15,16 @@ SPARK_MASTER_PORT	:= 7077
 
 all: | start run stop
 
+# PERCOM Artifact experiments
+clean_test_files:
+	docker exec -t spark-driver /mondrian/script/clean_files.sh
+
 check_deps:
 	$(foreach bin,$(REQUIRED_BINS),\
 		$(if $(shell which $(bin)),,$(error Please install `$(bin)`)))
+
+check_spark_image:
+	$(if $(shell docker images -q spark),,docker build -t spark ./spark)
 
 clean: check_deps
 	@ echo -e "\n[*] Removing docker containers.\n"
@@ -39,9 +46,43 @@ start up: check_deps .spark.build
 	@ echo -e "\n[*] Starting Apache Spark history server.\n"
 	docker-compose up -d spark-history-server
 
+swarm-start: check_spark_image
+	@ echo -e "\n[*] Starting Docker Swam with this node as Manager"
+	mkdir -p ./hdfs/namenode
+	mkdir -p ./hdfs/datanode
+	docker swarm init
+	docker network create -d overlay hostnet
+
+deploy:
+	docker stack deploy -c swarm.yml spark
+	make add_workers WORKERS=$(WORKERS)
+
+add_workers:
+	docker service scale spark_spark-worker=$(WORKERS)
+
+swarm-adults: $(PACKAGE_ZIP) $(OUTPUT_DIR)
+	@ echo -e "\n[*][SWARM-MODE] Running mondrian on dataset/adults.csv.\n"
+	- docker exec \
+			-t \
+			-e LOCAL_DATASET=/mondrian/dataset/adults.csv \
+			-e HDFS_DATASET=hdfs://namenode:8020/dataset/adults.csv \
+			-e HDFS_ANONYMIZED_DATASET=hdfs://namenode:8020/anonymized/adults.csv \
+			-e LOCAL_ANONYMIZED_DATASET=/mondrian/anonymized/adults.csv \
+			-e SPARK_APP_CONFIG=/mondrian/config/adults.json \
+			-e SPARK_APP_WORKERS=$(WORKERS) \
+			-e SPARK_APP_DEMO=$(DEMO)\
+			-e SPARK_APP_TEST=$(TEST) \
+			-it $(shell docker ps -q -f name=spark_spark-driver) \
+			/mondrian/script/submit.sh
+
 stop down: check_deps
 	@ echo -e "\n[*] Shutting down Apache Spark cluster.\n"
 	docker-compose kill
+
+swarm-stop:
+	@ echo -e "\n[*][SWARM-MODE] Shutting down Apache Spark cluster.\n"
+	docker stack rm spark
+	docker swarm leave --force
 
 _shell: check_deps
 	@ echo -e "\n[*] Running pyspark.\n"
@@ -119,3 +160,19 @@ _poker: check_deps $(PACKAGE_ZIP) $(OUTPUT_DIR)
 		-e SPARK_APP_TEST=$(TEST) \
 		spark-driver \
 		/mondrian/script/submit.sh
+
+usa1990: | start _usa1990 stop
+_usa1990: check_deps $(PACKAGE_ZIP) $(OUTPUT_DIR)
+			@ echo -e "\n[*] Running mondrian on dataset/usa1990.csv.\n"
+			- docker exec \
+				-t \
+				-e LOCAL_DATASET=/mondrian/dataset/usa1990.csv \
+				-e HDFS_DATASET=hdfs://namenode:8020/dataset/usa1990.csv \
+				-e HDFS_ANONYMIZED_DATASET=hdfs://namenode:8020/anonymized/usa1990.csv \
+				-e LOCAL_ANONYMIZED_DATASET=/mondrian/anonymized/usa1990.csv \
+				-e SPARK_APP_CONFIG=/mondrian/config/usa1990.json \
+				-e SPARK_APP_WORKERS=$(WORKERS) \
+				-e SPARK_APP_DEMO=$(DEMO) \
+				-e SPARK_APP_TEST=$(TEST) \
+				spark-driver \
+				/mondrian/script/submit.sh

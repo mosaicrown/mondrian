@@ -1,0 +1,6 @@
+# Artifact experiment results
+runtime*
+loss*
+
+# Keep this this file
+!.gitignore
