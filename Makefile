@@ -7,7 +7,7 @@ MAKE		   := make --no-print-directory
 
 LICENSE_TYPE   := "apache"
 LICENSE_HOLDER := "Unibg Seclab (https://seclab.unibg.it)"
-REQUIRED_ARTIFACT_BINS := python3 pip3 zip gnuplot
+REQUIRED_ARTIFACT_BINS := python3 zip gnuplot
 
 addlicense:
 	go get -u github.com/google/addlicense
