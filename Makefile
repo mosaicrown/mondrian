@@ -20,9 +20,9 @@ check_deps:
 		$(if $(shell which $(bin)),,$(error Please install `$(bin)`)))
 
 # PERCOM experiments
-artifact_experiments: | check_deps clean_test_files clean _artifcat_experiments
+artifact_experiments: | check_deps clean _artifcat_experiments
 
-_artifcat_experiments: check_deps clean_test_files _extract_USA2018
+_artifcat_experiments: _extract_USA2018 clean_test_files
 	cd percom_artifact_experiments; ./runtime_test.sh 20 | tee runtime.log; ./loss_test.sh 5 "5 10 20" "0.0001" | tee loss.log
 
 clean_test_files: start
