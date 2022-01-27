@@ -196,7 +196,11 @@ distributed/hdfs
 # gunzip
 *.gz
 
-# output of the local version
+# downloaded dataset
+local/dataset/usa2018.csv
+distributed/dataset/usa2018.csv
+
+# output of the anonymization
 local/anonymized
 distributed/anonymized
 
