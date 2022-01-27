@@ -20,9 +20,9 @@ setup(
     version="0.1.0",
     description="Single-threaded mondrian",
     install_requires=[
-        "numpy",
+        "numpy==1.21.0",
         "pandas==1.1.3",
-        "scipy",
+        "scipy==1.5.4",
         "treelib==1.6.1",
     ],
     url="https://github.com/unibg-seclab/spark-mondrian",

@@ -20,8 +20,12 @@ USER root
 RUN curl -o hadoop.tar.gz https://archive.apache.org/dist/hadoop/common/hadoop-3.2.1/hadoop-3.2.1.tar.gz && \
     tar -xzvf hadoop.tar.gz && mv hadoop-3.2.1 ../hadoop && rm hadoop.tar.gz
 
+# [master, worker] upgrade python from 3.6.13 to 3.8.12
+RUN . /opt/bitnami/scripts/libcomponent.sh && component_unpack "python" "3.8.12-12" --checksum c081f7f9663d4d64e7f26d6e6a77b3860ee1f39c309bd564f801c39192042d2f
+
 # [master, worker] install application requirements
 COPY requirements.txt /tmp/
+RUN ["pip", "install", "--upgrade", "pip"]
 RUN ["pip", "install", "--requirement", "/tmp/requirements.txt"]
 
 # [history server] overwrite default directory containing application event logs
