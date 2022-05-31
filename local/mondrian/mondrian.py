@@ -15,13 +15,13 @@
 
 # Functions that define Mondrian
 
-def cut_column(ser):
+def cut_column(ser, categoricals_with_order={}):
     """Determine two sets of indices identifing the values to be stored in left
     and right partitions after the cut.
 
     :ser: Pandas series
     """
-    if ser.dtype.name in ('object', 'category'):
+    if ser.dtype.name in ('object', 'category') and ser.name not in categoricals_with_order:
         frequencies = ser.value_counts()
         pos = len(ser) // 2
         median_idx = lc = 0
@@ -41,6 +41,8 @@ def cut_column(ser):
         dfr = ser.index[ser.isin(rv)]
         median = "obj-cat"
     else:
+        if ser.name in categoricals_with_order:
+            ser = ser.map(categoricals_with_order[ser.name])
         median = ser.median()
         dfl = ser.index[ser < median]
         dfr = ser.index[ser >= median]
@@ -52,7 +54,8 @@ def partition_dataframe(df,
                         sensitive_columns,
                         column_score,
                         is_valid,
-                        partitions=float("inf")):
+                        partitions=float("inf"),
+                        categoricals_with_order={}):
     """Iterate over the partitions and perform the best cut
     (according to the column score) up until cuts are possible."""
     num_partitions = partitions
@@ -73,7 +76,7 @@ def partition_dataframe(df,
         # otherwise skip to next column available
         # If no valid cut is found, then return the whole partition
         for score, column in sorted(scores, reverse=True):
-            lp, rp, median = cut_column(df[column][partition])
+            lp, rp, median = cut_column(df[column][partition], categoricals_with_order)
             if not (is_valid(df, lp, sensitive_columns)
                     and is_valid(df, rp, sensitive_columns)):
                 continue

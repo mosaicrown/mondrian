@@ -242,7 +242,7 @@ def __generalize_to_lcp(values, taxonomy, taxonomy_min_val, fanout):
     return taxonomy.get_node(root).tag
 
 
-def _read_categorical_taxonomy(taxonomy_json, debug=False):
+def _read_categorical_taxonomy(taxonomy_json, debug=False, create_ordering=False):
     """
     Reads a taxonomy of categories from a json collection
     :taxonomy_json: The collection to be read
@@ -264,7 +264,17 @@ def _read_categorical_taxonomy(taxonomy_json, debug=False):
     if debug:
         taxonomy.show()
 
-    return taxonomy
+    leaves_ordering = {} if create_ordering else None
+    if create_ordering:
+        all_nodes = taxonomy.expand_tree(mode=1,sorting=False)
+        index = 0
+        for node in all_nodes:
+            if taxonomy.get_node(node).is_leaf():
+                leaves_ordering[node] = index
+                index += 1
+
+
+    return taxonomy, leaves_ordering
 
 
 def __read_category_recursive(cat, subcat, taxonomy):

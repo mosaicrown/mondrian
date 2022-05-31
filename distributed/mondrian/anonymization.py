@@ -15,7 +15,7 @@
 import generalization as gnrlz
 from mondrian import partition_dataframe
 from validation import get_validation_function
-
+import math
 
 # Functions to generate the anonymous dataset.
 
@@ -28,6 +28,10 @@ def join_column(ser, dtype, generalization=None):
     """
     values = ser.unique()
     if len(values) == 1:
+        if generalization and 'generalization_type' in generalization and \
+                generalization['generalization_type'] == 'lexicographic':
+            num2str = generalization['mapping']
+            return num2str[values[0]]
         return str(values[0])
     try:
         if not generalization:
@@ -45,10 +49,13 @@ def join_column(ser, dtype, generalization=None):
             return gnrlz.__generalize_to_cp(
                 values,
                 hidemark=generalization['params']['hide-mark'])
+        elif generalization['generalization_type'] == 'lexicographic':
+            num2str = generalization['mapping']
+            return '[{}~{}]'.format(num2str[ser.min()], num2str[ser.max()])
     except KeyError:
         if dtype.name in ('object', 'category'):
             # ...set generalization
-            return '{' + ','.join(map(str, values)) + '}'
+            return '{' + ','.join(sorted(map(str, values))) + '}'
         else:
             # ...range generalization
             return '[{}-{}]'.format(ser.min(), ser.max())
@@ -57,10 +64,16 @@ def join_column(ser, dtype, generalization=None):
 def generalize_quasiid(df,
                        partitions,
                        quasiid_columns,
-                       quasiid_gnrlz=None):
+                       quasiid_gnrlz=None,
+                       k=None,
+                       GID={}):
     """Return a new dataframe by generalizing the partitions."""
     dtypes = df.dtypes
-
+    fragment = df["fragment"].iloc[0]
+    flat = len(GID) > 0
+    if flat:
+        GID[fragment] = list(GID[fragment]) 
+    
     for i, partition in enumerate(partitions):
         if i % 100 == 0:
             print("Finished {}/{} partitions...".format(i, len(partitions)))
@@ -72,6 +85,17 @@ def generalize_quasiid(df,
             df.loc[partition, column] = join_column(df[column][partition],
                                                     dtypes[column],
                                                     generalization)
+        h = len(partition) % k
+        n = math.floor(len(partition) / k) - h
+        elem = 0
+        if flat:
+                for e in range(0,h):
+                    df.loc[partition[elem:elem + k + 1], "fragment"] = GID[fragment].pop(0)
+                    elem = elem + k + 1
+                for e in range(0,n):
+                    df.loc[partition[elem:elem + k], "fragment"] = GID[fragment].pop(0)
+                    elem = elem + k
+
     return df
 
 
@@ -99,7 +123,9 @@ def anonymize(df,
               K,
               L,
               quasiid_gnrlz=None,
-              redact=False):
+              redact=False,
+              GID={},
+              categoricals_with_order={}):
     """Perform the clustering using K-anonymity and L-diversity and using
     the Mondrian algorithm. Then generalizes the quasi-identifier columns.
     """
@@ -108,8 +134,13 @@ def anonymize(df,
                                      quasiid_columns=quasiid_columns,
                                      sensitive_columns=sensitive_columns,
                                      column_score=column_score,
-                                     is_valid=get_validation_function(K,L))
+                                     is_valid=get_validation_function(K,L),
+                                     k=K,
+                                     flat=len(GID) > 0,
+                                     categoricals_with_order=categoricals_with_order)
     return generalize_quasiid(df=df,
                               partitions=partitions,
                               quasiid_columns=quasiid_columns,
-                              quasiid_gnrlz=quasiid_gnrlz)
+                              quasiid_gnrlz=quasiid_gnrlz,
+                              k=K,
+                              GID=GID)

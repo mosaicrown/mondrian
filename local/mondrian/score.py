@@ -27,10 +27,19 @@ def neg_entropy(ser):
     """Revert entropy sign to order column in increasing order of entropy."""
     return -entropy(ser)
 
-
 def span(ser):
-    """Calculate the span of the passed `pd.Series`."""
-    if ser.dtype.name in ('object', 'category'):
-        return ser.nunique()
+    """Return the domain cardinality."""
+    return ser.nunique()
+
+def norm_span(ser, total_spans, categoricals_with_order):
+    """Calculate the normalized span of the passed `pd.Series`."""
+    if ser.dtype.name in ('object', 'category') and ser.name not in categoricals_with_order:
+        num = ser.nunique()
     else:
-        return ser.max() - ser.min()
+        if ser.name in categoricals_with_order:
+            mapped = sorted(map(lambda x: categoricals_with_order[ser.name][x], ser.unique()))
+            num = mapped[-1] - mapped[0]
+        else:
+            num = ser.max() - ser.min()
+    den = total_spans[ser.name][0]
+    return (num / den, ser.nunique())

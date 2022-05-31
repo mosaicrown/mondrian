@@ -1,4 +1,4 @@
-.PHONY: all addlicense clean start stop up down ui run _run shell _shell notebook _notebook local local-adults adults _adults local-usa2018 usa2018 _usa2018 artifact_experiments clean_test_files
+.PHONY: addlicense add-usa2019 adults all artifact_experiments check_deps check_spark_image clean clean_test_files down local local-adults local-poker local-usa2018 local-usa2019 notebook poker run shell start stop ui up usa2018 usa2019 
 
 .DEFAULT_GOAL  := all
 
@@ -7,11 +7,15 @@ MAKE		   := make --no-print-directory
 
 LICENSE_TYPE   := "apache"
 LICENSE_HOLDER := "Unibg Seclab (https://seclab.unibg.it)"
-REQUIRED_ARTIFACT_BINS := python3 zip gnuplot
+
+REQUIRED_ARTIFACT_BINS := python3 pip3 zip gnuplot
 
 addlicense:
 	go get -u github.com/google/addlicense
 	$(shell go env GOPATH)/bin/addlicense -c $(LICENSE_HOLDER) -l $(LICENSE_TYPE) .
+
+add-usa2019:
+	@ $(MAKE) -C download download-usa2019
 
 clean: | _clean_local _clean_docker _clean_ui
 
@@ -20,16 +24,17 @@ check_deps:
 		$(if $(shell which $(bin)),,$(error Please install `$(bin)`)))
 
 # PERCOM experiments
-artifact_experiments: | check_deps clean _artifcat_experiments
+artifact_experiments: | check_deps clean _artifact_experiments
 
-_artifcat_experiments: _extract_USA2018 clean_test_files
-	cd percom_artifact_experiments; ./runtime_test.sh 20 | tee runtime.log; ./loss_test.sh 5 "5 10 20" "0.0001" | tee loss.log
+_artifact_experiments: _extract_usa2018 clean_test_files
+	cd experiments/percom_artifact_experiments; ./runtime_test.sh 20 | tee runtime.log; ./loss_test.sh 5 "5 10 20" "0.0001" | tee loss.log
 
 clean_test_files: start
 	@ $(MAKE) -C distributed clean_test_files
 
-_extract_USA2018:
-	@ cd percom_artifact_experiments;. ./extract_USA2018.sh
+_extract_usa2018:
+	@ cd experiments/percom_artifact_experiments; ./extract_usa2018.sh
+
 
 # graphical user interface
 ui:
@@ -45,6 +50,9 @@ local local-adults:
 local-usa2018:
 	@ $(MAKE) -C local usa2018
 
+local-usa2019:
+	@ $(MAKE) -C local usa2019
+
 local-poker:
 	@ $(MAKE) -C local poker
 
@@ -57,6 +65,9 @@ all:
 
 start up:
 	@ $(MAKE) -C distributed start
+
+check_spark_image:
+	@ $(MAKE) -C distributed check_spark_image
 
 stop down:
 	@ $(MAKE) -C distributed stop
@@ -90,6 +101,12 @@ poker:
 
 _poker:
 	@ $(MAKE) -C distributed _poker
+
+usa2019:
+	@ $(MAKE) -C distributed usa2019
+
+_usa2019:
+	@ $(MAKE) -C distributed _usa2019
 
 _clean_docker:
 	@ $(MAKE) -C distributed clean

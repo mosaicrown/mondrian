@@ -14,6 +14,7 @@
 
 
 import argparse
+import functools
 import json
 import time
 
@@ -24,7 +25,7 @@ from mondrian.anonymization import anonymize
 from mondrian.evaluation import discernability_penalty
 from mondrian.evaluation import global_certainty_penalty
 from mondrian.evaluation import normalized_certainty_penalty
-from mondrian.score import entropy, neg_entropy, span
+from mondrian.score import entropy, neg_entropy, span, norm_span
 from mondrian.visualization import visualizer
 from mondrian.test import result_handler
 
@@ -50,11 +51,13 @@ def __generalization_preproc(job, df):
         if g_dict['generalization_type'] == 'categorical':
             # read taxonomy from file
             t_db = g_dict['params']['taxonomy_tree']
+            create_ordering = g_dict['params'].get('create_ordering', False)
             if t_db is None:
                 raise gnrlz.IncompleteGeneralizationInfo()
-            taxonomy = gnrlz._read_categorical_taxonomy(t_db)
+            taxonomy, leaves_ordering = gnrlz._read_categorical_taxonomy(t_db, create_ordering)
             # taxonomy.show()
             g_dict['taxonomy_tree'] = taxonomy
+            g_dict['taxonomy_ordering'] = leaves_ordering
         elif g_dict['generalization_type'] == 'numerical':
             try:
                 fanout = g_dict['params']['fanout']
@@ -76,6 +79,17 @@ def __generalization_preproc(job, df):
             # print("Minv: {}".format(minv))
         # elif g_dict['generalization_type'] == 'common_prefix':
         # common_prefix generalization doesn't require taxonomy tree
+        elif g_dict['generalization_type'] == 'lexicographic':
+            # Enforce column as string
+            column = g_dict['qi_name']
+            df[column].astype(object, copy=False)
+            # Translate strings to numbers
+            values = sorted(df[column].unique())
+            str2num = {value:i for i, value in enumerate(values)}
+            df[column] = df[column].apply(lambda string: str2num[string])
+            # Prepare num to string mapping for generalization phase
+            num2str = {i:value for i, value in enumerate(values)}
+            g_dict['mapping'] = num2str
 
         quasiid_gnrlz[gen_item['qi_name']] = g_dict
 
@@ -116,7 +130,8 @@ def main():
     # when column score is not given it defaults to span
     score_functions = {'span': span,
                        'entropy': entropy,
-                       'neg_entropy': neg_entropy}
+                       'neg_entropy': neg_entropy,
+                       'norm_span': 'norm_span'}
     if 'column_score' in job and job['column_score'] in score_functions:
         column_score = score_functions[job['column_score']]
     else:
@@ -147,6 +162,25 @@ def main():
     print(df.head)
 
     quasiid_gnrlz = __generalization_preproc(job, df)
+    categoricals_with_order = {}
+    if quasiid_gnrlz is not None:
+        for qi in quasiid_gnrlz.values():
+            if 'taxonomy_ordering' in qi and qi['taxonomy_ordering'] is not None:
+                categoricals_with_order[qi['qi_name']] = qi['taxonomy_ordering']
+    
+    total_spans = None
+    if column_score == "norm_span" :
+        total_spans = {}
+        for qi in quasiid_columns:
+            ser = df[qi]
+            if ser.dtype.name in ('object', 'category') and ser.name not in categoricals_with_order:
+                total_spans[ser.name] = (ser.nunique(), 'unordered')
+            else:
+                if ser.name in categoricals_with_order:
+                    ser = (len(categoricals_with_order[ser.name]) - 1, 'numerical')
+                total_spans[ser.name] = (ser.max() - ser.min(), 'numerical')
+
+        column_score = functools.partial(norm_span, total_spans=total_spans, categoricals_with_order=categoricals_with_order)
 
     if demo == 1:
         print("\n[*] Taxonomies info read")
@@ -165,7 +199,8 @@ def main():
         column_score=column_score,
         K=K,
         L=L,
-        quasiid_gnrlz=quasiid_gnrlz)
+        quasiid_gnrlz=quasiid_gnrlz,
+        categoricals_with_order=categoricals_with_order)
 
     if demo == 1:
         print("\n[*] Dataset anonymized")

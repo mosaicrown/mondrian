@@ -1,4 +1,4 @@
-.PHONY: all clean run adults usa2018 tests 2dtest
+.PHONY: all clean run adults usa2018 tests 2dtest usa1990
 
 ROOT_DIR       := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
@@ -35,6 +35,9 @@ run adults: $(VENV) $(OUTPUT_DIR)
 
 usa2018: $(VENV) $(OUTPUT_DIR)
 	$(PYTHON) $(APP) config/usa2018.json $(DEMO)
+
+usa2019: $(VENV) $(OUTPUT_DIR)
+	$(PYTHON) $(APP) config/usa2019.json $(DEMO)
 
 poker: $(VENV) $(OUTPUT_DIR)
 	$(PYTHON) $(APP) config/poker.json $(DEMO)

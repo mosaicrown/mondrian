@@ -1,0 +1,281 @@
+{ "cat" : "US",
+  "subcats" : [
+     {
+      "cat" : "{Northeast, Midwest}",
+      "subcats":
+                 [{
+                   "cat" : "Northeast",
+                   "subcats" :  [{
+                                   "cat" : "New England",
+                                   "subcats": [{ "cat" : "Connecticut",
+                                                 "subcats": null
+                                               },
+                                               {
+                                                "cat" : "Maine",
+                                                "subcats" : null
+                                               }, 
+                                               {
+                                                "cat" : "Massachusetts",
+                                                "subcats" : null
+                                               }, 
+                                               {
+                                                "cat" : "New Hampshire",
+                                                "subcats" : null
+                                               }, 
+                                               {
+                                                "cat" : "Rhode Island",
+                                                "subcats" : null
+                                               }, 
+                                               {
+                                                "cat" : "Vermont",
+                                                "subcats" : null
+                                               }
+                                              ]
+                                 },
+                                 {
+                                    "cat" : "Mid-Atlantic",
+                                    "subcats" : [{
+                                                 "cat" : "New Jersey",
+                                                 "subcats" : null 
+                                                 }, 
+                                                 {
+                                                  "cat" : "New York", 
+                                                  "subcats" : null
+                                                 },
+                                                 {
+                                                  "cat" : "Pennsylvania",
+                                                  "subcats" : null
+                                                 }
+                                                ]
+                                 }
+                                ]
+                },
+                {
+                   "cat" : "Midwest",
+                   "subcats" : [{
+                                  "cat" : "East North Central",
+                                  "subcats" : [{
+                                                "cat" : "Illinois",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Indiana",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Michigan",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Ohio",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Wisconsin",
+                                                "subcats" : null
+                                               }
+                                              ]
+                                },
+                                { "cat" : "West North Central",
+                                  "subcats" : [{
+                                                "cat" : "Iowa",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Kansas", 
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Minnesota",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Missouri",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Nebraska",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "North Dakota",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "South Dakota",
+                                                "subcats" : null
+                                               }
+                                             ]
+                                }
+                               ]
+                 
+                }
+                ]
+        },
+        {
+          "cat" : "{South, West}",
+          "subcats" :
+                [{
+                   "cat" : "South",
+                   "subcats" : [{
+                                  "cat" : "East South Central",
+                                  "subcats" : [{
+                                                "cat" : "Alabama",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Kentucky",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Mississippi",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Tennessee",
+                                                "subcats" : null
+                                               }
+                                              ]
+                                },
+                                { "cat" : "South Atlantic",
+                                  "subcats" : [{
+                                                "cat" : "Delaware",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Florida",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Georgia",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Maryland",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "North Carolina",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "South Carolina",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Virginia",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "District of Columbia",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "West Virginia",
+                                                "subcats" : null
+                                               }
+                                             ]
+                                },
+                                {
+                                  "cat" : "West South Central",
+                                  "subcats" : [{
+                                                "cat" : "Arkansas",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Louisiana",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Oklahoma",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Texas",
+                                                "subcats" : null
+                                               }
+                                              ]
+                                }
+                               ]
+                 
+                },
+                {
+                   "cat" : "West",
+                   "subcats" : [{
+                                  "cat" : "Mountain",
+                                  "subcats" : [{
+                                                "cat" : "Arizona",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Colorado",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Idaho",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Montana",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Nevada",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "New Mexico",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Utah",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Wyoming",
+                                                "subcats" : null
+                                               }
+                                              ]
+                                },
+                                { "cat" : "Pacific",
+                                  "subcats" : [{
+                                                "cat" : "Alaska",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "California", 
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Hawaii",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Oregon",
+                                                "subcats" : null
+                                               },
+                                               {
+                                                "cat" : "Washington",
+                                                "subcats" : null
+                                               }
+                                             ]
+                                }
+                               ]
+
+                }
+                ]
+        },
+	{
+	  "cat": "Unknown",
+	  "subcats": [	{
+		  	"cat" : "Puerto Rico",
+			"subcats" : null
+			},
+			{
+			"cat" : "?",
+			"subcats" : null
+			}
+	  	     ]
+	}
+        ]
+}
