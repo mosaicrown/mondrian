@@ -20,7 +20,7 @@ setup(
     version="0.1.0",
     description="Single-threaded mondrian",
     install_requires=[
-        "numpy==1.21.0",
+        "numpy==1.22.0",
         "pandas==1.1.3",
         "scipy==1.5.4",
         "treelib==1.6.1",
