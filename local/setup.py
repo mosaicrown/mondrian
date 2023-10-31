@@ -22,7 +22,7 @@ setup(
     install_requires=[
         "numpy==1.22.0",
         "pandas==1.1.3",
-        "scipy==1.5.4",
+        "scipy==1.10.0",
         "treelib==1.6.1",
     ],
     url="https://github.com/unibg-seclab/spark-mondrian",
