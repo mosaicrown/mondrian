@@ -121,8 +121,8 @@ def main():
     test_measures = {}
 
     # Parameters
-    input = job['input']
-    output = job['output']
+    input_filename = job['input']
+    output_filename = job['output']
     id_columns = job.get('id_columns', [])
     redact = job.get('redact', False)
     quasiid_columns = job['quasiid_columns']
@@ -158,7 +158,7 @@ def main():
 
     if demo == 1:
         print("\n[*] Reading the dataset")
-    df = pd.read_csv(input)
+    df = pd.read_csv(input_filename)
     print(df.head)
 
     quasiid_gnrlz = __generalization_preproc(job, df)
@@ -236,8 +236,8 @@ def main():
             print(f"Global Certainty Penalty = {gcp:.4f}")
             test_measures["GCP"] = gcp
     # Write file according to extension
-    print(f"\n[*] Writing to {output}")
-    adf.to_csv(output, index=False)
+    print(f"\n[*] Writing to {output_filename}")
+    adf.to_csv(output_filename, index=False)
 
     print('\n[*] Done\n')
     end_time = time.time()
