@@ -53,8 +53,10 @@ def _taxonomy_test_01():
     print("TAXONOMY TEST 01")
     print("=" * 80)
 
-    taxonomy = gnrlz._read_categorical_taxonomy(
-        "taxonomy/category_example.json", debug=True)
+    taxonomy, _ = gnrlz._read_categorical_taxonomy(
+        "taxonomy/category_example.json",
+        debug=True
+    )
 
     vals = ["daughter2 gc_d1", "daughter gc_d1"]
     category = gnrlz.__generalize_to_lcc(vals, taxonomy)
@@ -78,8 +80,8 @@ def _taxonomy_test_02():
     print("TAXONOMY TEST 02")
     print("=" * 80)
 
-    taxonomy = gnrlz._read_categorical_taxonomy("taxonomy/countries.json",
-                                                debug=True)
+    taxonomy, _ = gnrlz._read_categorical_taxonomy("taxonomy/countries.json",
+                                                   debug=True)
 
     vals = ["Poland", "Italy"]
     category = gnrlz.__generalize_to_lcc(vals, taxonomy)
