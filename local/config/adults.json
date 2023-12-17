@@ -29,7 +29,8 @@
 			"qi_name": "education-num",
 			"generalization_type": "common_prefix",
 			"params": {
-				"hide-mark": "+"
+				"hide_mark": "+",
+				"char_domain_size": "10"
 			}
 		}
     ],

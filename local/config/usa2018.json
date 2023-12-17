@@ -6,14 +6,13 @@
     "column_score": "span",
     "K": 3,
     "L": 2,
-    "quasiid_generalizations": [
-        {
-	    "qi_name": "EDUCD",
-	    "generalization_type": "common_prefix",
-	    "params": {
-		"hide-mark": "+"
-	    }
-	}
-    ],
+    "quasiid_generalizations": [{
+        "qi_name": "EDUCD",
+        "generalization_type": "common_prefix",
+        "params": {
+            "hide_mark": "+",
+            "char_domain_size": "10"
+        }
+    }],
     "measures": []
 }
