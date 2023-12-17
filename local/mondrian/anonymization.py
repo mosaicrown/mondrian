@@ -75,6 +75,11 @@ def generalize_quasiid(df,
     """Return a new dataframe by generalizing the partitions."""
     dtypes = df.dtypes
 
+    # Ensure that the quasi identifier columns have been converted to strings
+    # without affecting generalization ordering
+    gdf = df.copy(deep=False)
+    gdf = gdf.astype({column: 'object' for column in quasiid_columns}, copy=False)
+
     for i, partition in enumerate(partitions):
         if i % 100 == 0:
             print("Finished {}/{} partitions...".format(i, len(partitions)))
@@ -83,10 +88,10 @@ def generalize_quasiid(df,
             generalization = quasiid_gnrlz[column] \
                              if quasiid_gnrlz and column in quasiid_gnrlz \
                              else None
-            df.loc[partition, column] = join_column(df[column][partition],
+            gdf.loc[partition, column] = join_column(df[column][partition],
                                                     dtypes[column],
                                                     generalization)
-    return df
+    return gdf
 
 
 def remove_id(df, id_columns, redact=False):
