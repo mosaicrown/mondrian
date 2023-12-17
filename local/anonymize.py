@@ -80,10 +80,10 @@ def __generalization_preproc(job, df):
         # elif g_dict['generalization_type'] == 'common_prefix':
         # common_prefix generalization doesn't require taxonomy tree
         elif g_dict['generalization_type'] == 'lexicographic':
-            # Enforce column as string
             column = g_dict['qi_name']
-            df[column].astype(object, copy=False)
-            # Translate strings to numbers
+            # Enforce column as string
+            df[column] = df[column].map(str)
+            # Convert string to num to avoid treating column as categorical
             values = sorted(df[column].unique())
             str2num = {value:i for i, value in enumerate(values)}
             df[column] = df[column].apply(lambda string: str2num[string])
