@@ -39,7 +39,7 @@ def quantile_fragmentation(df, quasiid_columns, column_score, fragments,
 
 
 def mondrian_fragmentation(df, quasiid_columns, sensitive_columns, column_score,
-                           is_valid, fragments, colname, k,is_sampled=False, scale=False, flat=False):
+                           is_valid, fragments, colname, k, is_sampled=False, scale=False, flat=False):
     """Generate a number of fragments by cutting columns over median."""
     # generate fragments using mondrian
     if is_sampled:

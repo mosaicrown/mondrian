@@ -14,6 +14,8 @@
 
 from pyspark.sql import types as T
 from pyspark.sql import functions as F
+
+
 def get_extension(filename):
     _, sep, extension = filename.rpartition(".")
     if not sep:
@@ -26,24 +28,23 @@ def customPartitioner(el):
 
 
 def repartition_dataframe(df, spark):
-    df = spark.createDataFrame(df.rdd.map(lambda r : (r['fragment'], r))\
-    .partitionBy(df.rdd.getNumPartitions(), customPartitioner)\
-    .map(lambda r : r[1]))\
-    .toDF(*df.columns)
+    df = spark.createDataFrame(df.rdd.map(lambda r : (r['fragment'], r)) \
+        .partitionBy(df.rdd.getNumPartitions(), customPartitioner) \
+        .map(lambda r : r[1])) \
+        .toDF(*df.columns)
     return df
 
-def prepare_parallelization_udf_schema(redact, df, id_columns):
 
+def prepare_parallelization_udf_schema(redact, df, id_columns):
     if not redact:
-        schema = T.StructType(
-            df.select(
-                [column for column in df.columns if column not in id_columns]
-            ).schema
-        )
+        schema = df.select(
+            [column for column in df.columns if column not in id_columns]
+        ).schema
     else:
-        schema = T.StructType(df.schema)
+        schema = df.schema
 
     return schema
+
 
 def remap_fragments_to_float(df, spark, schema):
     """ Remap from binary string to float the fragment column """

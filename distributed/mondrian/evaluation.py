@@ -38,6 +38,7 @@ def extract_span(aggregation, column_name=None, quasiid_gnrlz=None):
         return domain**count if count else 0
     if aggregation.startswith('[') and (aggregation.endswith(']')
                                         or aggregation.endswith(')')):
+        # TODO: Add support for lexicographic generalization
         low, high = map(float, aggregation[1:-1].split('-'))
         return high - low
     if aggregation.startswith('{') and aggregation.endswith('}'):

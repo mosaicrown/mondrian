@@ -258,42 +258,45 @@ def main():
 
         if parallel and job['fragmentation'] == "mondrian":
             print("\n[*] Run without sampling with partial parallelization\n")
-            # Prepare the dataframe
             df = df.withColumn('fragment', F.lit("0"))
-            schema = prepare_parallelization_udf_schema(redact=redact, df=df, id_columns=id_columns)
 
-            @F.pandas_udf(schema, F.PandasUDFType.GROUPED_MAP)
+            @F.pandas_udf(df.schema, F.PandasUDFType.GROUPED_MAP)
             def single_cut(df):
-                if not_last_step or df['fragment'].loc[0] in last_step_filter:
-                    df = mondrian_fragmentation(df, quasiid_columns, sensitive_columns, column_score,
-                                           get_validation_function(K, L), 2, "fragment", K,False, True)
+                if current_filter is None or df['fragment'][0] in current_filter:
+                    df = mondrian_fragmentation(
+                        df, quasiid_columns, sensitive_columns, column_score,
+                        get_validation_function(K, L), 2, "fragment", K,
+                        is_sampled=False, scale=True
+                    )
                 return df
 
-            steps = math.ceil(math.log(fragments, 2))
-            total = steps
-            last_step_cuts = int(fragments - math.pow(2, steps - 1))
-            last_step_filter = ["{0:b}".format(i).zfill(steps) for i in range(0, last_step_cuts)]
-            not_last_step = True
-            spark.sparkContext.broadcast(last_step_filter)
-            spark.sparkContext.broadcast(not_last_step)
+            total_steps = math.ceil(math.log(fragments, 2))
+            current_filter = None
+            spark.sparkContext.broadcast(current_filter)
 
-            while steps > 0:
-                if steps == 1:
-                    not_last_step = False
-                    spark.sparkContext.broadcast(not_last_step)
+            print(f'\n[*] (Cut {0} of {total_steps}) Number of pre-processing partitions: {df.rdd.getNumPartitions()}')
+
+            for step in range(1, total_steps + 1):
+                if step == total_steps:
+                    # Update filter to match the number of required fragements
+                    last_step_cuts = int(fragments - math.pow(2, total_steps - 1))
+                    current_filter = {"{0:b}".format(i).zfill(total_steps) for i in range(last_step_cuts)}
+                    spark.sparkContext.broadcast(current_filter)
 
                 df = df \
                     .groupby('fragment') \
                     .applyInPandas(single_cut.func, schema=single_cut.returnType).cache()
-                steps -= 1
+
+                # Repartition dataframe for following work
                 if repartition == 'repartitionByRange':
                     df = df.repartitionByRange('fragment')
                 elif repartition == 'customRepartition':
                     df = repartition_dataframe(df, spark)
-                print(f'\n[*] (Cut {total - steps} of {total}) Number of pre-processing partitions: {df.rdd.getNumPartitions()}')
+
+                print(f'\n[*] (Cut {step} of {total_steps}) Number of pre-processing partitions: {df.rdd.getNumPartitions()}')
 
             # Clean fragment indexes presentation
-            df = remap_fragments_to_float(df=df, spark=spark, schema=schema)
+            df = remap_fragments_to_float(df=df, spark=spark, schema=df.schema)
             # Compute the range on the quasi-identifiers columns
             # will be useful for information loss evaluation
             categoricals = [
@@ -471,15 +474,16 @@ def main():
         time.sleep(10)
     
     if total_spans is not None:
-            for qi, span_info in total_spans.items():
-                if span_info[1] == 'unordered' and qi not in categoricals_with_order:
-                    total_spans[qi] = (df.select(F.countDistinct(qi)).collect()[0][0], span_info[1])
-                elif qi in categoricals_with_order:
-                    total_spans[qi] = (len(categoricals_with_order[qi]) - 1, 'numerical')
-                else:
-                    total_spans[qi] = (df.agg({qi: 'max'}).collect()[0][0] - df.agg({qi: 'min'}).collect()[0][0], span_info[1])
+        for qi, span_info in total_spans.items():
+            if span_info[1] == 'unordered' and qi not in categoricals_with_order:
+                total_spans[qi] = (df.select(F.countDistinct(qi)).collect()[0][0], span_info[1])
+            elif qi in categoricals_with_order:
+                total_spans[qi] = (len(categoricals_with_order[qi]) - 1, 'numerical')
+            else:
+                total_spans[qi] = (df.agg({qi: 'max'}).collect()[0][0] - df.agg({qi: 'min'}).collect()[0][0], span_info[1])
 
-            column_score = functools.partial(norm_span, total_spans=total_spans, categoricals_with_order=categoricals_with_order)
+        column_score = functools.partial(norm_span, total_spans=total_spans, categoricals_with_order=categoricals_with_order)
+
     # Create the pandas udf
     @F.pandas_udf(schema, F.PandasUDFType.GROUPED_MAP)
     def anonymize_udf(pdf):
