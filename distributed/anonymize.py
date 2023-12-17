@@ -246,9 +246,9 @@ def main():
             ser = pdf[qi]
             if ser.dtype.name in ('object', 'category') and ser.name not in categoricals_with_order:
                 total_spans[ser.name] = (ser.nunique(), 'unordered')
+            elif ser.name in categoricals_with_order:
+                total_spans[ser.name] = (len(categoricals_with_order[ser.name]) - 1, 'numerical')
             else:
-                if ser.name in categoricals_with_order:
-                    ser = ser.map(categoricals_with_order[ser.name])
                 total_spans[ser.name] = (ser.max() - ser.min(), 'numerical')
 
         column_score = functools.partial(norm_span, total_spans=total_spans, categoricals_with_order=categoricals_with_order)
@@ -474,11 +474,10 @@ def main():
             for qi, span_info in total_spans.items():
                 if span_info[1] == 'unordered' and qi not in categoricals_with_order:
                     total_spans[qi] = (df.select(F.countDistinct(qi)).collect()[0][0], span_info[1])
+                elif qi in categoricals_with_order:
+                    total_spans[qi] = (len(categoricals_with_order[qi]) - 1, 'numerical')
                 else:
-                    if qi in categoricals_with_order:
-                        total_spans[qi] = (len(categoricals_with_order[qi]) - 1, 'numerical')
-                    else:
-                        total_spans[qi] = (df.agg({qi: 'max'}).collect()[0][0] - df.agg({qi: 'min'}).collect()[0][0], span_info[1])
+                    total_spans[qi] = (df.agg({qi: 'max'}).collect()[0][0] - df.agg({qi: 'min'}).collect()[0][0], span_info[1])
 
             column_score = functools.partial(norm_span, total_spans=total_spans, categoricals_with_order=categoricals_with_order)
     # Create the pandas udf
