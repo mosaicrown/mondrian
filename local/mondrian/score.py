@@ -41,5 +41,5 @@ def norm_span(ser, total_spans, categoricals_with_order):
             num = mapped[-1] - mapped[0]
         else:
             num = ser.max() - ser.min()
-    den = total_spans[ser.name][0]
+    den = total_spans[ser.name]
     return (num / den, ser.nunique())

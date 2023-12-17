@@ -174,11 +174,11 @@ def main():
         for qi in quasiid_columns:
             ser = df[qi]
             if ser.dtype.name in ('object', 'category') and ser.name not in categoricals_with_order:
-                total_spans[ser.name] = (ser.nunique(), 'unordered')
+                total_spans[ser.name] = ser.nunique()
+            elif ser.name in categoricals_with_order:
+                total_spans[ser.name] = len(categoricals_with_order[ser.name]) - 1
             else:
-                if ser.name in categoricals_with_order:
-                    ser = (len(categoricals_with_order[ser.name]) - 1, 'numerical')
-                total_spans[ser.name] = (ser.max() - ser.min(), 'numerical')
+                total_spans[ser.name] = ser.max() - ser.min()
 
         column_score = functools.partial(norm_span, total_spans=total_spans, categoricals_with_order=categoricals_with_order)
 
