@@ -410,4 +410,4 @@ def __generalize_to_cp(ser=None, debug=False, hidemark="*", t=None):
         print("prefix: {}".format(pref))
         print("---------------")
 
-    return pref + suff + "[" + str(l) + "]"
+    return pref + suff

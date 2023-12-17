@@ -48,7 +48,7 @@ def join_column(ser, dtype, generalization=None):
                 'generalization_type'] == 'common_prefix':
             return gnrlz.__generalize_to_cp(
                 values,
-                hidemark=generalization['params']['hide-mark'])
+                hidemark=generalization['params']['hide_mark'])
         elif generalization['generalization_type'] == 'lexicographic':
             num2str = generalization['mapping']
             return '[{}~{}]'.format(num2str[ser.min()], num2str[ser.max()])

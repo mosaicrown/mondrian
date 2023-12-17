@@ -32,7 +32,7 @@ def extract_span(aggregation, column_name=None, quasiid_gnrlz=None):
         mark = quasiid_gnrlz[column_name]['params']['hide_mark']
         domain = int(quasiid_gnrlz[column_name]['params']['char_domain_size'])
         count = aggregation.count(mark)
-        return domain ^ count if count else 0
+        return domain**count if count else 0
     if aggregation.startswith('[') and (aggregation.endswith(']')
                                         or aggregation.endswith(')')):
         # TODO: Add support for lexicographic generalization

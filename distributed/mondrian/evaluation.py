@@ -32,13 +32,10 @@ def extract_span(aggregation, column_name=None, quasiid_gnrlz=None):
         return leaves if leaves > 1 else 0
     if column_name and quasiid_gnrlz[column_name][
             'generalization_type'] == 'common_prefix':
-        # if the string was generalized return 1 else 0
-        hm = quasiid_gnrlz[column_name]['params']['hide-mark']
-        if hm in aggregation:
-            return int(aggregation[aggregation.index("[") + 1:-1])
-        else:
-            return 0
-        return 1 if hm in aggregation else 0
+        mark = quasiid_gnrlz[column_name]['params']['hide_mark']
+        domain = int(quasiid_gnrlz[column_name]['params']['char_domain_size'])
+        count = aggregation.count(mark)
+        return domain**count if count else 0
     if aggregation.startswith('[') and (aggregation.endswith(']')
                                         or aggregation.endswith(')')):
         low, high = map(float, aggregation[1:-1].split('-'))
