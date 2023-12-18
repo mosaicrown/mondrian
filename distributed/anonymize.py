@@ -336,6 +336,7 @@ def main():
     else:
 
         if job['fragmentation'] == "mondrian":
+            # Compute bins on the sample
             if parallel:
                 print("\n[*] Sampled run with partial parallelization")
                 df = df.withColumn('fragment', F.lit(0))
@@ -393,8 +394,10 @@ def main():
                                    is_sampled=True,
                                    k=K)
 
+            # Read entire file in distributed manner
             df = spark.read \
-                .options(header='true', inferSchema='true').csv(filename_in)
+                .options(header='true', inferSchema='true') \
+                .format(extension).load(filename_in)
             df = mondrian_buckets(df, bins)
         else:
             print("\n[*] Run with sampling- Quantile cuts\n")
@@ -406,21 +409,24 @@ def main():
 
             # Read entire file in distributed manner
             df = spark.read \
-                .options(header='true', inferSchema='true').csv(filename_in)
-            bins[0] = float(
-                "-inf")  # to prevent out of Bucketizer bounds exception
-            bins[-1] = float(
-                "inf")  # to prevent out of Bucketizer bounds exception
+                .options(header='true', inferSchema='true') \
+                .format(extension).load(filename_in)
+
+            bins[0] = float("-inf")  # avoid out of Bucketizer bounds exception
+            bins[-1] = float("inf")  # avoid out of Bucketizer bounds exception
 
             if len(bins) != 2:
                 # split into buckets only if there are more than 1
                 bucketizer = Bucketizer(splits=bins,
-                             inputCol=column,
-                             outputCol='fragment')
+                                        inputCol=column,
+                                        outputCol='fragment')
                 df = bucketizer.transform(df)
+                # Force fragmentation info to integer
+                df = df.withColumn('fragment',
+                                   F.col('fragment').cast(T.IntegerType()))
             else:
                 # otherwise assign every row to bucket 0
-                df = df.withColumn('fragment', F.lit(0.0))
+                df = df.withColumn('fragment', F.lit(0))
 
         # Compute the range on the quasi-identifiers columns
         # will be useful for information loss evaluation
