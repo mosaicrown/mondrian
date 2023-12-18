@@ -15,7 +15,6 @@
 import argparse
 import functools
 import json
-import sys
 import time
 
 import math
@@ -34,7 +33,7 @@ from fragmentation import quantile_buckets
 from fragmentation import quantile_fragmentation
 from generalization import generalization_preproc
 from score import entropy, neg_entropy, span, norm_span
-from utils import get_extension, repartition_dataframe
+from utils import get_extension, get_quasiid_spans, repartition_dataframe
 from test import write_test_params
 from validation import get_validation_function
 
@@ -163,19 +162,18 @@ def main():
  
     pdf = df.toPandas()
 
-    total_spans = None
-    if column_score == "norm_span" :
-        total_spans = {}
-        for qi in quasiid_columns:
-            ser = pdf[qi]
-            if ser.dtype.name in ('object', 'category') and ser.name not in categoricals_with_order:
-                total_spans[ser.name] = (ser.nunique(), 'unordered')
-            elif ser.name in categoricals_with_order:
-                total_spans[ser.name] = (len(categoricals_with_order[ser.name]) - 1, 'numerical')
-            else:
-                total_spans[ser.name] = (ser.max() - ser.min(), 'numerical')
-
-        column_score = functools.partial(norm_span, total_spans=total_spans, categoricals_with_order=categoricals_with_order)
+    init_quasiid_spans = None
+    if column_score == "norm_span":
+        # Compute the initial span of the quasi-identifiers columns
+        init_quasiid_spans, init_quasiid_spans_by_name = get_quasiid_spans(
+            df,
+            quasiid_columns
+        )
+        column_score = functools.partial(
+            norm_span,
+            total_spans=init_quasiid_spans_by_name,
+            categoricals_with_order=categoricals_with_order
+        )
 
     pdf.info()
 
@@ -185,7 +183,7 @@ def main():
         # Mondrian
         if is_parallel:
             print(f"\n[*] Run {preposition} sampling and parallelization"
-                    " - Mondrian cuts")
+                  f" - Mondrian cuts")
             df, bins = mondrian_with_parallelization(
                 df=df,
                 quasiid_columns=quasiid_columns,
@@ -290,17 +288,25 @@ def main():
         print("\n[*] Taxonomies data preprocessed")
         print("\tWait for 10 seconds to continue demo...")
         time.sleep(10)
-    
-    if total_spans is not None:
-        for qi, span_info in total_spans.items():
-            if span_info[1] == 'unordered' and qi not in categoricals_with_order:
-                total_spans[qi] = (df.select(F.countDistinct(qi)).collect()[0][0], span_info[1])
-            elif qi in categoricals_with_order:
-                total_spans[qi] = (len(categoricals_with_order[qi]) - 1, 'numerical')
-            else:
-                total_spans[qi] = (df.agg({qi: 'max'}).collect()[0][0] - df.agg({qi: 'min'}).collect()[0][0], span_info[1])
 
-        column_score = functools.partial(norm_span, total_spans=total_spans, categoricals_with_order=categoricals_with_order)
+    # Reuse initial span of the quasi-identifiers
+    quasiid_spans = init_quasiid_spans
+
+    # Compute the span of the quasi-identifiers columns on the entire
+    # dataset for the scoring of columns with the normalized span and for
+    # the evaluation of the normalized/global certainty penalty
+    if (init_quasiid_spans and to_sample) or (quasiid_spans is None and
+            ('normalized_certainty_penalty' in measures or
+             'global_certainty_penalty' in measures)):
+        quasiid_spans, quasiid_spans_by_name = get_quasiid_spans(
+            df,
+            quasiid_columns
+        )
+        column_score = functools.partial(
+            norm_span,
+            total_spans=quasiid_spans_by_name,
+            categoricals_with_order=categoricals_with_order
+        )
 
     # Create the pandas udf
     @F.pandas_udf(schema, F.PandasUDFType.GROUPED_MAP)
@@ -380,22 +386,11 @@ def main():
         schema = T.StructType(
             [T.StructField('information_loss', T.DoubleType(), nullable=False)])
 
-        # Compute the range on the quasi-identifiers columns for the evaluation of
-        # the normalized certainty penalty
-        categoricals = [
-            column for column, dtype in df.dtypes
-            if column in quasiid_columns and dtype == 'string'
-        ]
-        funcs = (F.countDistinct(F.col(cname)) if cname in categoricals else
-                    F.max(F.col(cname)) - F.min(F.col(cname))
-                    for cname in quasiid_columns)
-        quasiid_range = df.agg(*funcs).collect()[0]
-
         @F.pandas_udf(schema, F.PandasUDFType.GROUPED_MAP)
         def normalized_certainty_penalty_udf(adf):
             gcp = normalized_certainty_penalty(adf=adf,
                                             quasiid_columns=quasiid_columns,
-                                            quasiid_range=quasiid_range,
+                                            quasiid_range=quasiid_spans,
                                             quasiid_gnrlz=quasiid_gnrlz)
             # pandas_udf requires a pandas dataframe as output
             return pd.DataFrame({'information_loss': [gcp]})
