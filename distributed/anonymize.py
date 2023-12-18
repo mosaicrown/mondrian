@@ -35,7 +35,7 @@ from fragmentation import mondrian_fragmentation
 from fragmentation import quantile_fragmentation
 from fragmentation import mondrian_buckets
 from score import entropy, neg_entropy, span, norm_span
-from utils import get_extension, repartition_dataframe, prepare_parallelization_udf_schema, remap_fragments_to_float
+from utils import get_extension, repartition_dataframe
 from test import write_test_params
 from validation import get_validation_function
 
@@ -252,13 +252,15 @@ def main():
                 total_spans[ser.name] = (ser.max() - ser.min(), 'numerical')
 
         column_score = functools.partial(norm_span, total_spans=total_spans, categoricals_with_order=categoricals_with_order)
+
     pdf.info()
-    print('\n[*] Fragmentation details\n')
+
+    print('\n[*] Fragmentation details')
     if not fraction:
 
         if parallel and job['fragmentation'] == "mondrian":
-            print("\n[*] Run without sampling with partial parallelization\n")
-            df = df.withColumn('fragment', F.lit("0"))
+            print("\n[*] Run without sampling with partial parallelization")
+            df = df.withColumn('fragment', F.lit(0))
 
             @F.pandas_udf(df.schema, F.PandasUDFType.GROUPED_MAP)
             def single_cut(df):
@@ -275,12 +277,13 @@ def main():
             spark.sparkContext.broadcast(current_filter)
 
             print(f'\n[*] (Cut {0} of {total_steps}) Number of pre-processing partitions: {df.rdd.getNumPartitions()}')
+            print("STEP 0: ", df.select('fragment').distinct().collect())
 
             for step in range(1, total_steps + 1):
                 if step == total_steps:
                     # Update filter to match the number of required fragements
                     last_step_cuts = int(fragments - math.pow(2, total_steps - 1))
-                    current_filter = {"{0:b}".format(i).zfill(total_steps) for i in range(last_step_cuts)}
+                    current_filter = {i for i in range(last_step_cuts)}
                     spark.sparkContext.broadcast(current_filter)
 
                 df = df \
@@ -291,17 +294,16 @@ def main():
                 if repartition == 'repartitionByRange':
                     df = df.repartitionByRange('fragment')
                 elif repartition == 'customRepartition':
-                    df = repartition_dataframe(df, spark)
+                    df = repartition_dataframe(df, 2**step)
 
                 print(f'\n[*] (Cut {step} of {total_steps}) Number of pre-processing partitions: {df.rdd.getNumPartitions()}')
+                print(f"STEP {step}: ", df.select('fragment').distinct().collect())
 
-            # Clean fragment indexes presentation
-            df = remap_fragments_to_float(df=df, spark=spark, schema=df.schema)
             # Compute the range on the quasi-identifiers columns
             # will be useful for information loss evaluation
             categoricals = [
-                item[0] for item in df.dtypes
-                if item[0] in quasiid_columns and item[1].startswith('string')
+                column for column, dtype in df.dtypes
+                if column in quasiid_columns and dtype == 'string'
             ]
             funcs = (F.countDistinct(F.col(cname)) if cname in categoricals else
                      F.max(F.col(cname)) - F.min(F.col(cname))
@@ -335,42 +337,45 @@ def main():
 
         if job['fragmentation'] == "mondrian":
             if parallel:
-                print("\n[*] Sampled run with partial parallelization\n")
-
-                # Prepare the dataframe
-                df = df.withColumn('fragment', F.lit("0"))
+                print("\n[*] Sampled run with partial parallelization")
+                df = df.withColumn('fragment', F.lit(0))
                 df = df.withColumn('bucket', F.lit("[[[],[],[]]]"))
-                schema = prepare_parallelization_udf_schema(redact=redact, df=df, id_columns=id_columns)
 
-                @F.pandas_udf(schema, F.PandasUDFType.GROUPED_MAP)
+                @F.pandas_udf(df.schema, F.PandasUDFType.GROUPED_MAP)
                 def single_cut(df):
-                    if not_last_step or df['fragment'].loc[0] in last_step_filter:
-                        df = mondrian_fragmentation(df, quasiid_columns, sensitive_columns, column_score,
-                                                    get_validation_function(K, L), 2, "fragment", K, True, True)
+                    if current_filter is None or df['fragment'][0] in current_filter:
+                        df = mondrian_fragmentation(
+                            df, quasiid_columns, sensitive_columns, column_score,
+                            get_validation_function(K, L), 2, "fragment", K,
+                            is_sampled=True, scale=True
+                        )
                     return df
 
-                steps = math.ceil(math.log(fragments, 2))
-                total = steps
-                last_step_cuts = int(fragments - math.pow(2, steps - 1))
-                last_step_filter = ["{0:b}".format(i).zfill(steps) for i in range(0, last_step_cuts)]
-                not_last_step = True
-                spark.sparkContext.broadcast(last_step_filter)
-                spark.sparkContext.broadcast(not_last_step)
+                total_steps = math.ceil(math.log(fragments, 2))
+                current_filter = None
+                spark.sparkContext.broadcast(current_filter)
 
-                while steps > 0:
-                    if steps == 1:
-                        not_last_step = False
-                        spark.sparkContext.broadcast(not_last_step)
+                print(f'\n[*] (Cut {0} of {total_steps}) Number of pre-processing partitions: {df.rdd.getNumPartitions()}')
+                print("STEP 0: ", df.select('fragment').distinct().collect())
+
+                for step in range(1, total_steps + 1):
+                    if step == total_steps:
+                        last_step_cuts = int(fragments - math.pow(2, total_steps - 1))
+                        current_filter = {i for i in range(last_step_cuts)}
+                        spark.sparkContext.broadcast(current_filter)
 
                     df = df \
                         .groupby('fragment') \
                         .applyInPandas(single_cut.func, schema=single_cut.returnType).cache()
-                    steps -= 1
+
                     if repartition == 'repartitionByRange':
                         df = df.repartitionByRange('fragment')
                     elif repartition == 'customRepartition':
-                        df = repartition_dataframe(df, spark)
-                    print(f'\n[*] (Cut {total - steps} of {total}) Number of pre-processing partitions: {df.rdd.getNumPartitions()}')
+                        df = repartition_dataframe(df, 2**step)
+
+                    print(f'\n[*] (Cut {step} of {total_steps}) Number of pre-processing partitions: {df.rdd.getNumPartitions()}')
+                    print(f"STEP {step}: ", df.select('fragment').distinct().collect())
+
                 # Prepare buckets from DF column
                 bins = []
                 for log in df.select("bucket").distinct().toPandas()['bucket']:
@@ -441,7 +446,7 @@ def main():
                 GID_dict[size["fragment"]] =  all_GID[current_index:current_index + part_num]
                 current_index += part_num
 
-    print("\n[*] Dataset with fragmentation info\n")
+    print("[*] Dataset with fragmentation info\n")
     df.show()
 
     # Create a schema in which identifiers are either not there or strings
@@ -509,10 +514,10 @@ def main():
     if repartition == 'repartitionByRange':
         df = df.repartitionByRange('fragment')
     elif repartition == 'customRepartition':
-        df = repartition_dataframe(df, spark)
+        df = repartition_dataframe(df, df.rdd.getNumPartitions())
 
-    print('\n[*] Starting anonymizing the dataframe\n')
-    print(f'\n[*] Number of DF partitions: {df.rdd.getNumPartitions()}\n')
+    print('[*] Starting anonymizing the dataframe\n')
+    print(f'[*] Number of DF partitions: {df.rdd.getNumPartitions()}')
 
     ''' Debug spark partitioning -> Low performance
     count = 0
@@ -548,16 +553,16 @@ def main():
                                            quasiid_gnrlz=quasiid_gnrlz)
         # pandas_udf requires a pandas dataframe as output
         return pd.DataFrame({'information_loss': [gcp]})
+
     if repartition == 'repartitionByRange':
         adf = adf.repartitionByRange('fragment')
     elif repartition == 'customRepartition':
-        adf = repartition_dataframe(adf, spark)
+        adf = repartition_dataframe(adf, df.rdd.getNumPartitions())
 
-    print(f'\n[*] Number of ADF partitions: {adf.rdd.getNumPartitions()}\n')
+    print(f'[*] Number of ADF partitions: {adf.rdd.getNumPartitions()}')
+
+    print('\n[*] Anonymized dataframe\n')
     adf.drop('fragment').show(10)
-
-    print('\n[*] Anonymized dataframe')
-
     if demo == 1:
         print("\tWait for 10 seconds to continue demo...\n")
         time.sleep(10)

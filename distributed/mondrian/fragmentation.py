@@ -70,15 +70,19 @@ def mondrian_fragmentation(df, quasiid_columns, sensitive_columns, column_score,
         if not scale:
             df[colname] = -1
         else:
-            label = df[colname][0]
+            prefix = df[colname][0]
 
         for i, partition in enumerate(partitions):
             if scale:
-                df.loc[partition, colname] = [label + str(i)] * len(partition)
+                df.loc[partition, colname] = [(prefix << 1) + i] * len(partition)
                 if is_sampled:
                     df.loc[partition, 'bucket'] = [str([medians[i]])] * len(partition)
             else:
                 df.loc[partition, colname] = [i] * len(partition)
+
+        # Force fragmentation info to int32
+        df = df.astype({colname: 'int32'}, copy=False)
+
         return df
 
 
@@ -95,8 +99,8 @@ def create_fragments(df, quasiid_columns, column_score, fragments, colname,
 
 def mondrian_buckets(df, bins):
     """ Emulates Spark Bucketizer when using Mondrian in sampled runs. """
-    df = df.withColumn('fragment', F.lit(0.0))
-    bucket_index = 0.0
+    df = df.withColumn('fragment', F.lit(0))
+    bucket_index = 0
     comparison = ("<", ">=")
     for columns, values, signs in bins:
         lines = []
@@ -108,7 +112,7 @@ def mondrian_buckets(df, bins):
                 lines.append(f"`{column}` in ('{set_line}')")
         expression = " and ".join(lines)
         df = df.withColumn("fragment", F.expr(f"case when {expression} then {bucket_index} else fragment end"))
-        bucket_index += 1.0
+        bucket_index += 1
     return df
 
 def get_fragments_quantiles(df, quasiid_columns, column_score, fragments):

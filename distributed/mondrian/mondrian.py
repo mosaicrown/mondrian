@@ -174,7 +174,7 @@ def cut_column(ser, is_sampled=False, categoricals_with_order={}):
         median = ser.median()
         dfl = ser.index[ser < median]
         dfr = ser.index[ser >= median]
-    return (dfl, dfr) if not(is_sampled) else (dfl, dfr, median)
+    return (dfl, dfr) if not is_sampled else (dfl, dfr, median)
 
 
 
@@ -227,8 +227,8 @@ def partition_dataframe(df,
             if is_sampled:
                 # Cache cut information
                 med_lp = med[:]
-                med_rp = [ x[:] for x in med_lp ]          
-            
+                med_rp = [x[:] for x in med_lp]
+
                 med_lp[0].append(column)
                 med_lp[1].append(median if type(median) is not tuple else median[0])
                 med_lp[2].append("<" if type(median) is not tuple else "in")
@@ -257,9 +257,8 @@ def partition_dataframe(df,
             if is_sampled:
                 medians_to_add_again.append(med)
             print('No valid cut for this partition. Keeping it intact.')
+
+    partitions = finished_partitions if num_partitions == float("inf") else [p.index for p in partitions] + to_add_again
     if is_sampled:
-        partitions = finished_partitions if num_partitions == float(
-        "inf") else partitions + to_add_again
         return partitions, medians + medians_to_add_again
-    return finished_partitions if num_partitions == float(
-        "inf") else [p.index for p in partitions] + to_add_again
+    return partitions
