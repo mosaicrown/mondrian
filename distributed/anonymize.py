@@ -305,18 +305,6 @@ def main():
                 print(f'\n[*] (Cut {step} of {total_steps}) Number of pre-processing partitions: {df.rdd.getNumPartitions()}')
                 print(f"STEP {step}: ", df.select('fragment').distinct().collect())
 
-            # Compute the range on the quasi-identifiers columns
-            # will be useful for information loss evaluation
-            categoricals = [
-                column for column, dtype in df.dtypes
-                if column in quasiid_columns and dtype == 'string'
-            ]
-            funcs = (F.countDistinct(F.col(cname)) if cname in categoricals else
-                     F.max(F.col(cname)) - F.min(F.col(cname))
-                     for cname in quasiid_columns)
-            quasiid_range = df.agg(*funcs).collect()[0]
-
-
         else:
             run_type = "Mondrian" if fragmentation == mondrian else "Quantile"
             print(f"\n[*] Run without sampling - {run_type} cuts\n")
@@ -333,12 +321,6 @@ def main():
                 pdf = pd.DataFrame.from_dict(pdf.to_dict())
             # Create spark dataframe
             df = spark.createDataFrame(pdf)
-
-            # Compute the range on the quasi-identifiers columns
-            # will be useful for information loss evaluation
-            quasiid_range = [-1] * len(quasiid_columns)
-            for i, column in enumerate(quasiid_columns):
-                quasiid_range[i] = span(pdf[column])
     else:
 
         if fragmentation == mondrian:
@@ -433,17 +415,6 @@ def main():
             else:
                 # otherwise assign every row to bucket 0
                 df = df.withColumn('fragment', F.lit(0))
-
-        # Compute the range on the quasi-identifiers columns
-        # will be useful for information loss evaluation
-        categoricals = [
-            item[0] for item in df.dtypes
-            if item[0] in quasiid_columns and item[1].startswith('string')
-        ]
-        funcs = (F.countDistinct(F.col(cname)) if cname in categoricals else
-                 F.max(F.col(cname)) - F.min(F.col(cname))
-                 for cname in quasiid_columns)
-        quasiid_range = df.agg(*funcs).collect()[0]
 
     # Check first cut
     sizes = df.groupBy('fragment').count()
@@ -542,30 +513,6 @@ def main():
         .applyInPandas(anonymize_udf.func, schema=anonymize_udf.returnType) \
         .cache()
 
-
-    # Create Discernability Penalty udf
-    schema = T.StructType(
-        [T.StructField('information_loss', T.LongType(), nullable=False)])
-
-    @F.pandas_udf(schema, F.PandasUDFType.GROUPED_MAP)
-    def discernability_penalty_udf(adf):
-        dp = discernability_penalty(adf=adf, quasiid_columns=quasiid_columns)
-        # pandas_udf requires a pandas dataframe as output
-        return pd.DataFrame({'information_loss': [dp]})
-
-    # Create Normalized Certainty Penalty udf
-    schema = T.StructType(
-        [T.StructField('information_loss', T.DoubleType(), nullable=False)])
-
-    @F.pandas_udf(schema, F.PandasUDFType.GROUPED_MAP)
-    def normalized_certainty_penalty_udf(adf):
-        gcp = normalized_certainty_penalty(adf=adf,
-                                           quasiid_columns=quasiid_columns,
-                                           quasiid_range=quasiid_range,
-                                           quasiid_gnrlz=quasiid_gnrlz)
-        # pandas_udf requires a pandas dataframe as output
-        return pd.DataFrame({'information_loss': [gcp]})
-
     if repartition == 'repartitionByRange':
         adf = adf.repartitionByRange('fragment')
     elif repartition == 'customRepartition':
@@ -589,6 +536,40 @@ def main():
 
     if measures:
         print('[*] Information loss evaluation\n')
+
+        # Create Discernability Penalty udf
+        schema = T.StructType(
+            [T.StructField('information_loss', T.LongType(), nullable=False)])
+
+        @F.pandas_udf(schema, F.PandasUDFType.GROUPED_MAP)
+        def discernability_penalty_udf(adf):
+            dp = discernability_penalty(adf=adf, quasiid_columns=quasiid_columns)
+            # pandas_udf requires a pandas dataframe as output
+            return pd.DataFrame({'information_loss': [dp]})
+
+        # Create Normalized Certainty Penalty udf
+        schema = T.StructType(
+            [T.StructField('information_loss', T.DoubleType(), nullable=False)])
+
+        # Compute the range on the quasi-identifiers columns for the evaluation of
+        # the normalized certainty penalty
+        categoricals = [
+            column for column, dtype in df.dtypes
+            if column in quasiid_columns and dtype == 'string'
+        ]
+        funcs = (F.countDistinct(F.col(cname)) if cname in categoricals else
+                    F.max(F.col(cname)) - F.min(F.col(cname))
+                    for cname in quasiid_columns)
+        quasiid_range = df.agg(*funcs).collect()[0]
+
+        @F.pandas_udf(schema, F.PandasUDFType.GROUPED_MAP)
+        def normalized_certainty_penalty_udf(adf):
+            gcp = normalized_certainty_penalty(adf=adf,
+                                            quasiid_columns=quasiid_columns,
+                                            quasiid_range=quasiid_range,
+                                            quasiid_gnrlz=quasiid_gnrlz)
+            # pandas_udf requires a pandas dataframe as output
+            return pd.DataFrame({'information_loss': [gcp]})
 
     for measure in measures:
         if measure == 'discernability_penalty':

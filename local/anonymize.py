@@ -190,10 +190,6 @@ def main():
         print("\n[*] Taxonomies info read")
         input("\t Press any key to continue...\n")
 
-    qi_range = [-1] * len(quasiid_columns)
-    for i, column in enumerate(quasiid_columns):
-        qi_range[i] = span(df[column])
-
     adf = anonymize(
         df=df,
         id_columns=id_columns,
@@ -224,6 +220,9 @@ def main():
 
     if measures:
         print('\n[*] Information loss evaluation\n')
+        qi_range = [-1] * len(quasiid_columns)
+        for i, column in enumerate(quasiid_columns):
+            qi_range[i] = span(df[column])
     for measure in measures:
         if measure == 'discernability_penalty':
             dp = discernability_penalty(adf, quasiid_columns)
