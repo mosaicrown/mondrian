@@ -25,6 +25,7 @@ from mondrian.anonymization import anonymize
 from mondrian.evaluation import discernability_penalty
 from mondrian.evaluation import global_certainty_penalty
 from mondrian.evaluation import normalized_certainty_penalty
+from mondrian.generalization import generalization_preproc
 from mondrian.score import entropy, neg_entropy, span, norm_span
 from mondrian.visualization import visualizer
 from mondrian.test import result_handler
@@ -36,73 +37,6 @@ SCORE_FUNCTIONS = {
     'neg_entropy': neg_entropy,
     'norm_span' : 'norm_span'
 }
-
-
-def __generalization_preproc(job, df):
-    """Anonymization preprocessing to arrange generalizations.
-
-    :job: Dictionary job, contains information about generalization methods
-    :df: Dataframe to be anonymized
-    :returns: Dictionary of taxonomies required to perform generalizations
-    """
-    if 'quasiid_generalizations' not in job:
-        return None
-
-    quasiid_gnrlz = dict()
-
-    for gen_item in job['quasiid_generalizations']:
-        g_dict = dict()
-        g_dict['qi_name'] = gen_item['qi_name']
-        g_dict['generalization_type'] = gen_item['generalization_type']
-        g_dict['params'] = gen_item['params']
-
-        if g_dict['generalization_type'] == 'categorical':
-            # read taxonomy from file
-            t_db = g_dict['params']['taxonomy_tree']
-            create_ordering = g_dict['params'].get('create_ordering', False)
-            if t_db is None:
-                raise gnrlz.IncompleteGeneralizationInfo()
-            taxonomy, leaves_ordering = gnrlz._read_categorical_taxonomy(t_db, create_ordering)
-            # taxonomy.show()
-            g_dict['taxonomy_tree'] = taxonomy
-            g_dict['taxonomy_ordering'] = leaves_ordering
-        elif g_dict['generalization_type'] == 'numerical':
-            try:
-                fanout = g_dict['params']['fanout']
-                accuracy = g_dict['params']['accuracy']
-                digits = g_dict['params']['digits']
-            except KeyError:
-                raise gnrlz.IncompleteGeneralizationInfo()
-            if fanout is None or accuracy is None or digits is None:
-                raise gnrlz.IncompleteGeneralizationInfo()
-            taxonomy, minv = gnrlz.__taxonomize_numeric(
-                df=df,
-                col_label=g_dict['qi_name'],
-                fanout=int(fanout),
-                accuracy=float(accuracy),
-                digits=int(digits))
-            g_dict['taxonomy_tree'] = taxonomy
-            g_dict['min'] = minv
-            # taxonomy.show()
-            # print("Minv: {}".format(minv))
-        # elif g_dict['generalization_type'] == 'common_prefix':
-        # common_prefix generalization doesn't require taxonomy tree
-        elif g_dict['generalization_type'] == 'lexicographic':
-            column = g_dict['qi_name']
-            # Enforce column as string
-            df[column] = df[column].map(str)
-            # Convert string to num to avoid treating column as categorical
-            values = sorted(df[column].unique())
-            str2num = {value:i for i, value in enumerate(values)}
-            df[column] = df[column].apply(lambda string: str2num[string])
-            # Prepare num to string mapping for generalization phase
-            num2str = {i:value for i, value in enumerate(values)}
-            g_dict['mapping'] = num2str
-
-        quasiid_gnrlz[gen_item['qi_name']] = g_dict
-
-    # return the generalization dictionary
-    return quasiid_gnrlz
 
 
 def main():
@@ -165,7 +99,7 @@ def main():
     df = pd.read_csv(input_filename)
     print(df.head)
 
-    quasiid_gnrlz = __generalization_preproc(job, df)
+    quasiid_gnrlz = generalization_preproc(job, df)
     categoricals_with_order = {}
     if quasiid_gnrlz is not None:
         for qi in quasiid_gnrlz.values():

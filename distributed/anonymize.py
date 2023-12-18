@@ -20,20 +20,19 @@ import time
 
 import math
 import pandas as pd
-from pyspark.ml.feature import Bucketizer
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
-import generalization as gnrlz
 from anonymization import anonymize
 from evaluation import discernability_penalty
 from evaluation import evaluate_information_loss
 from evaluation import normalized_certainty_penalty
-from fragmentation import create_fragments
-from fragmentation import get_fragments_quantiles
-from fragmentation import mondrian_fragmentation
-from fragmentation import quantile_fragmentation
 from fragmentation import mondrian_buckets
+from fragmentation import mondrian_without_parallelization
+from fragmentation import mondrian_with_parallelization
+from fragmentation import quantile_buckets
+from fragmentation import quantile_fragmentation
+from generalization import generalization_preproc
 from score import entropy, neg_entropy, span, norm_span
 from utils import get_extension, repartition_dataframe
 from test import write_test_params
@@ -46,76 +45,8 @@ SCORE_FUNCTIONS = {
     'neg_entropy': neg_entropy,
     'norm_span' : 'norm_span'
 }
-
-REPARTITIONS = {
-    'customRepartition': 'customRepartition',
-    'noRepartition': 'noRepartition',
-    'repartitionByRange': 'repartitionByRange'
-}
-
-
-def __generalization_preproc(job, df, spark):
-    """Anonymization preprocessing to arrange generalizations.
-
-    :job: Dictionary job, contains information about generalization methods
-    :df: Dataframe to be anonymized
-    :spark: Spark instance
-    :returns: Dictionary of taxonomies required to perform generalizations
-    """
-    if 'quasiid_generalizations' not in job:
-        return df, None
-
-    quasiid_gnrlz = dict()
-
-    for gen_item in job['quasiid_generalizations']:
-        g_dict = dict()
-        g_dict['qi_name'] = gen_item['qi_name']
-        g_dict['generalization_type'] = gen_item['generalization_type']
-        g_dict['params'] = gen_item['params']
-        if g_dict['generalization_type'] == 'categorical':
-            # read taxonomy from file
-            t_db = g_dict['params']['taxonomy_tree']
-            create_ordering = g_dict['params'].get('create_ordering', False)
-            if t_db is None:
-                raise gnrlz.IncompleteGeneralizationInfo()
-            taxonomy, leaves_ordering = gnrlz._read_categorical_taxonomy(t_db, create_ordering)
-            g_dict['taxonomy_tree'] = taxonomy
-            g_dict['taxonomy_ordering'] = leaves_ordering
-        elif g_dict['generalization_type'] == 'numerical':
-            try:
-                fanout = g_dict['params']['fanout']
-                accuracy = g_dict['params']['accuracy']
-                digits = g_dict['params']['digits']
-            except KeyError:
-                raise gnrlz.IncompleteGeneralizationInfo()
-            if fanout is None or accuracy is None or digits is None:
-                raise gnrlz.IncompleteGeneralizationInfo()
-            taxonomy, minv = gnrlz.__taxonomize_numeric(
-                spark=spark,
-                df=df,
-                col_label=g_dict['qi_name'],
-                fanout=int(fanout),
-                accuracy=float(accuracy),
-                digits=int(digits))
-            g_dict['taxonomy_tree'] = taxonomy
-            g_dict['min'] = minv
-        elif g_dict['generalization_type'] == 'lexicographic':
-            # Enforce column as string
-            column = g_dict['qi_name']
-            # Translate strings to numbers
-            values = sorted([str(r[column])
-                             for r in df.select(column).distinct().collect()])
-            str2num = {value:i for i, value in enumerate(values)}
-            to_num = F.udf(lambda v: str2num[str(v)], T.IntegerType())
-            df = df.withColumn(column, to_num(column))
-            # Prepare num to string mapping for generalization phase
-            num2str = {i:value for i, value in enumerate(values)}
-            g_dict['mapping'] = num2str
-
-        quasiid_gnrlz[gen_item['qi_name']] = g_dict
-
-    # return the generalization dictionary
-    return df, quasiid_gnrlz
+REPARTITIONS = ['customRepartition', 'noRepartition', 'repartitionByRange']
+FRAGMENTATIONS = ['mondrian', 'quantile']
 
 
 def main():
@@ -180,33 +111,20 @@ def main():
                          f"{', '.join(SCORE_FUNCTIONS)}")
 
     # Parameters guiding the distribution of the job on the cluster
-    fraction = job.get('fraction') if job.get('fraction') != 1 else None
+    fraction = job.get('fraction')
     if fraction is not None and (fraction <= 0 or fraction > 1):
         raise ValueError("Fraction value must be in (0:1]")
+    to_sample = (fraction is not None and fraction != 1)
     fragments = min(args.WORKERS, job.get('max_fragments', 10**6))
-    parallel = job.get('parallel', False)
-    try:
-        repartition = REPARTITIONS[job.get('repartition',
-                                           'repartitionByRange')]
-    except KeyError:
+    is_parallel = job.get('parallel', False)
+    repartition = job.get('repartition', 'repartitionByRange')
+    if repartition not in REPARTITIONS:
         raise ValueError(f"Repartition must be one of "
                          f"{', '.join(REPARTITIONS)}")
-
-    # Setup mondrian_fragmentation function
-    mondrian = functools.partial(mondrian_fragmentation,
-                                 sensitive_columns=sensitive_columns,
-                                 is_valid=get_validation_function(K,L),
-                                 flat=flat)
-
-    # when fragmentation is not given it defaults to quantile_fragmentation
-    fragmentation_functions = {'mondrian': mondrian,
-                               'quantile': quantile_fragmentation}
-    try:
-        fragmentation = fragmentation_functions[job.get('fragmentation',
-                                                        'quantile')]
-    except KeyError:
+    fragmentation = job.get('fragmentation', 'quantile')
+    if fragmentation not in FRAGMENTATIONS:
         raise ValueError(f"Fragmentation must be one of "
-                         f"{', '.join(fragmentation_functions)}")
+                         f"{', '.join(FRAGMENTATIONS)}")
 
     if not K and not L:
         raise ValueError("Both K and L parameters not given or equal to zero.")
@@ -229,14 +147,14 @@ def main():
         .options(header='true', inferSchema='true') \
         .format(extension).load(filename_in)
 
-    if fraction:
+    if to_sample:
         df = df.sample(fraction=fraction)
 
     for attribute in use_categorical:
         df = df.withColumn(attribute, F.col(attribute).cast(T.StringType()))
     
-    # initialize taxonomies
-    df, quasiid_gnrlz = __generalization_preproc(job, df, spark=spark)
+    # Initialize taxonomies
+    df, quasiid_gnrlz = generalization_preproc(df, job)
     categoricals_with_order = {}
     if quasiid_gnrlz is not None:
         for qi in quasiid_gnrlz.values():
@@ -262,164 +180,79 @@ def main():
     pdf.info()
 
     print('\n[*] Fragmentation details')
-    if not fraction:
-
-        if parallel and fragmentation == mondrian:
-            print("\n[*] Run without sampling with partial parallelization")
-            df = df.withColumn('fragment', F.lit(0))
-
-            @F.pandas_udf(df.schema, F.PandasUDFType.GROUPED_MAP)
-            def single_cut(df):
-                if current_filter is None or df['fragment'][0] in current_filter:
-                    df = mondrian_fragmentation(
-                        df, quasiid_columns, sensitive_columns, column_score,
-                        get_validation_function(K, L), 2, "fragment", K,
-                        is_sampled=False, scale=True
-                    )
-                return df
-
-            total_steps = math.ceil(math.log(fragments, 2))
-            current_filter = None
-            spark.sparkContext.broadcast(current_filter)
-
-            print(f'\n[*] (Cut {0} of {total_steps}) Number of pre-processing partitions: {df.rdd.getNumPartitions()}')
-            print("STEP 0: ", df.select('fragment').distinct().collect())
-
-            for step in range(1, total_steps + 1):
-                if step == total_steps:
-                    # Update filter to match the number of required fragements
-                    last_step_cuts = int(fragments - math.pow(2, total_steps - 1))
-                    current_filter = {i for i in range(last_step_cuts)}
-                    spark.sparkContext.broadcast(current_filter)
-
-                df = df \
-                    .groupby('fragment') \
-                    .applyInPandas(single_cut.func, schema=single_cut.returnType).cache()
-
-                # Repartition dataframe for following work
-                if repartition == 'repartitionByRange':
-                    df = df.repartitionByRange('fragment')
-                elif repartition == 'customRepartition':
-                    df = repartition_dataframe(df, 2**step)
-
-                print(f'\n[*] (Cut {step} of {total_steps}) Number of pre-processing partitions: {df.rdd.getNumPartitions()}')
-                print(f"STEP {step}: ", df.select('fragment').distinct().collect())
-
+    preposition = "with" if to_sample else "without"
+    if fragmentation == 'mondrian':
+        # Mondrian
+        if is_parallel:
+            print(f"\n[*] Run {preposition} sampling and parallelization"
+                    " - Mondrian cuts")
+            df, bins = mondrian_with_parallelization(
+                df=df,
+                quasiid_columns=quasiid_columns,
+                sensitive_columns=sensitive_columns,
+                column_score=column_score,
+                is_valid=get_validation_function(K, L),
+                fragments=fragments,
+                colname="fragment",
+                repartition_strategy=repartition,
+                is_sampled=to_sample
+            )
         else:
-            run_type = "Mondrian" if fragmentation == mondrian else "Quantile"
-            print(f"\n[*] Run without sampling - {run_type} cuts\n")
-            # Create first cut
-            pdf = create_fragments(df=pdf,
-                                   quasiid_columns=quasiid_columns,
-                                   column_score=column_score,
-                                   fragments=fragments,
-                                   colname='fragment',
-                                   criteria=fragmentation,
-                                   k=K)
-            if fragmentation == quantile_fragmentation:
-                # Recreate the dataframe in a way that is appreciated by pyarrow.
-                pdf = pd.DataFrame.from_dict(pdf.to_dict())
-            # Create spark dataframe
-            df = spark.createDataFrame(pdf)
-    else:
-
-        if fragmentation == mondrian:
-            # Compute bins on the sample
-            if parallel:
-                print("\n[*] Sampled run with partial parallelization")
-                df = df.withColumn('fragment', F.lit(0))
-                df = df.withColumn('bucket', F.lit("[[[],[],[]]]"))
-
-                @F.pandas_udf(df.schema, F.PandasUDFType.GROUPED_MAP)
-                def single_cut(df):
-                    if current_filter is None or df['fragment'][0] in current_filter:
-                        df = mondrian_fragmentation(
-                            df, quasiid_columns, sensitive_columns, column_score,
-                            get_validation_function(K, L), 2, "fragment", K,
-                            is_sampled=True, scale=True
-                        )
-                    return df
-
-                total_steps = math.ceil(math.log(fragments, 2))
-                current_filter = None
-                spark.sparkContext.broadcast(current_filter)
-
-                print(f'\n[*] (Cut {0} of {total_steps}) Number of pre-processing partitions: {df.rdd.getNumPartitions()}')
-                print("STEP 0: ", df.select('fragment').distinct().collect())
-
-                for step in range(1, total_steps + 1):
-                    if step == total_steps:
-                        last_step_cuts = int(fragments - math.pow(2, total_steps - 1))
-                        current_filter = {i for i in range(last_step_cuts)}
-                        spark.sparkContext.broadcast(current_filter)
-
-                    df = df \
-                        .groupby('fragment') \
-                        .applyInPandas(single_cut.func, schema=single_cut.returnType).cache()
-
-                    if repartition == 'repartitionByRange':
-                        df = df.repartitionByRange('fragment')
-                    elif repartition == 'customRepartition':
-                        df = repartition_dataframe(df, 2**step)
-
-                    print(f'\n[*] (Cut {step} of {total_steps}) Number of pre-processing partitions: {df.rdd.getNumPartitions()}')
-                    print(f"STEP {step}: ", df.select('fragment').distinct().collect())
-
-                # Prepare buckets from DF column
-                bins = []
-                for log in df.select("bucket").distinct().toPandas()['bucket']:
-                    log = eval(log)
-                    bins.append(log[0])
-
+            print(f"\n[*] Run {preposition} sampling - Mondrian cuts\n")
+            ret = mondrian_without_parallelization(
+                df=pdf,
+                quasiid_columns=quasiid_columns,
+                sensitive_columns=sensitive_columns,
+                column_score=column_score,
+                is_valid=get_validation_function(K,L),
+                fragments=fragments,
+                colname='fragment',
+                is_sampled=to_sample,
+                k=K,
+                flat=flat
+            )
+            # Unwrap return value
+            if to_sample:
+                pdf, bins = ret
             else:
-                print("\n[*] Run with sampling - Mondrian cuts\n")
-                pdf, bins = create_fragments(df=pdf,
-                                   quasiid_columns=quasiid_columns,
-                                   column_score=column_score,
-                                   fragments=fragments,
-                                   colname='fragment',
-                                   criteria=fragmentation,
-                                   is_sampled=True,
-                                   k=K)
+                pdf = ret
+                # Distribute dataframe
+                df = spark.createDataFrame(pdf)
 
-            # Read entire file in distributed manner
+        if to_sample:
+            # Read entire dataframe
             df = spark.read \
                 .options(header='true', inferSchema='true') \
                 .format(extension).load(filename_in)
+            # Partition dataframe according to the bins
             df = mondrian_buckets(df, bins)
-        else:
-            print("\n[*] Run with sampling- Quantile cuts\n")
-            # Compute quantiles on the sample
-            column, bins = get_fragments_quantiles(df=pdf,
-                                                   quasiid_columns=quasiid_columns,
-                                                   column_score=column_score,
-                                                   fragments=fragments)
-
+    elif fragmentation == 'quantile':
+        # Quantile
+        print(f"\n[*] Run {preposition} sampling - Quantile cuts\n")
+        pdf, column, bins = quantile_fragmentation(
+            df=pdf,
+            quasiid_columns=quasiid_columns,
+            column_score=column_score,
+            fragments=fragments,
+            colname='fragment'
+        )
+        if to_sample:
             # Read entire file in distributed manner
             df = spark.read \
                 .options(header='true', inferSchema='true') \
                 .format(extension).load(filename_in)
+            df = quantile_buckets(df, column, bins)
+        else:
+            # Recreate the dataframe in a way that is appreciated by pyarrow.
+            pdf = pd.DataFrame.from_dict(pdf.to_dict())
+            # Distribute dataframe
+            df = spark.createDataFrame(pdf)
 
-            bins[0] = float("-inf")  # avoid out of Bucketizer bounds exception
-            bins[-1] = float("inf")  # avoid out of Bucketizer bounds exception
-
-            if len(bins) != 2:
-                # split into buckets only if there are more than 1
-                bucketizer = Bucketizer(splits=bins,
-                                        inputCol=column,
-                                        outputCol='fragment')
-                df = bucketizer.transform(df)
-                # Force fragmentation info to integer
-                df = df.withColumn('fragment',
-                                   F.col('fragment').cast(T.IntegerType()))
-            else:
-                # otherwise assign every row to bucket 0
-                df = df.withColumn('fragment', F.lit(0))
-
-    # Check first cut
+    # Check result of the initial fragmentation
     sizes = df.groupBy('fragment').count()
     print("\n[*] Dataset distribution among fragments\n")
     sizes.show()
+
     GID_dict = {}
     if flat:
             all_GID = range(0, math.floor(df.count() / K))
@@ -448,9 +281,6 @@ def main():
     for column in quasiid_columns:
         schema[column].dataType = T.StringType()
 
-    # TODO: add a column to the output schema to keep information on the
-    #       equivalent classes to avoid reconstructing them from scratch
-    #       in the evaluation of the metrics
     if demo == 1 and fragments > 1:
         print("\n[*] Dataset fragmented")
         print("\tWait for 10 seconds to continue demo...")
@@ -494,10 +324,11 @@ def main():
 
         return adf
 
+    # Repartition dataframe according to the fragmentation info
     if repartition == 'repartitionByRange':
         df = df.repartitionByRange('fragment')
     elif repartition == 'customRepartition':
-        df = repartition_dataframe(df, df.rdd.getNumPartitions())
+        df = repartition_dataframe(df, fragments)
 
     print('[*] Starting anonymizing the dataframe\n')
     print(f'[*] Number of DF partitions: {df.rdd.getNumPartitions()}')
@@ -512,11 +343,6 @@ def main():
         .groupby('fragment') \
         .applyInPandas(anonymize_udf.func, schema=anonymize_udf.returnType) \
         .cache()
-
-    if repartition == 'repartitionByRange':
-        adf = adf.repartitionByRange('fragment')
-    elif repartition == 'customRepartition':
-        adf = repartition_dataframe(adf, df.rdd.getNumPartitions())
 
     print(f'[*] Number of ADF partitions: {adf.rdd.getNumPartitions()}')
 
@@ -534,6 +360,9 @@ def main():
     measures_log["L"] = L
     measures_log["fraction"] = fraction
 
+    # TODO: add a column to the output schema to keep information on the
+    #       equivalent classes to avoid reconstructing them from scratch
+    #       in the evaluation of the metrics
     if measures:
         print('[*] Information loss evaluation\n')
 
@@ -588,11 +417,12 @@ def main():
             print(f"Global Certainty Penalty = {gcp:.4f}")
             measures_log["GCP"] = gcp
 
-    # Remove fragmentation information
+    # Handle fragmentation information
     if not flat:
         adf = adf.drop('fragment')
     else:
         adf = adf.withColumnRenamed('fragment', 'GID')
+
     # Write file according to extension
     print(f"\n[*] Writing to {filename_out}\n")
     extension = get_extension(filename_out)
@@ -609,8 +439,10 @@ def main():
 
     if test == 1:
         # Write test params to Hadoop
-        test_result_files = ["hdfs://namenode:8020/anonymized/test_results.csv",
-         "hdfs://namenode:8020/anonymized/artifact_result.csv"]
+        test_result_files = [
+            "hdfs://namenode:8020/anonymized/test_results.csv",
+            "hdfs://namenode:8020/anonymized/artifact_result.csv"
+        ]
         print("[*] Creating test configuration file on Hadoop")
         write_test_params(spark, measures_log, test_result_files)
 

@@ -42,17 +42,17 @@ def join_column(ser, dtype, generalization=None):
         if not generalization:
             raise KeyError
         if generalization['generalization_type'] == 'categorical':
-            return gnrlz.__generalize_to_lcc(values,
+            return gnrlz.generalize_to_lcc(values,
                                              generalization['taxonomy_tree'])
         elif generalization['generalization_type'] == 'numerical':
-            return gnrlz.__generalize_to_lcp(
+            return gnrlz.generalize_to_lcp(
                 values,
                 generalization['taxonomy_tree'],
                 generalization['min'],
                 generalization['params']['fanout']
             )
         elif generalization['generalization_type'] == 'common_prefix':
-            return gnrlz.__generalize_to_cp(
+            return gnrlz.generalize_to_cp(
                 values,
                 hidemark=generalization['params']['hide_mark']
             )

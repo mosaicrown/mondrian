@@ -12,36 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
+
 import pandas as pd
-import numpy as np
+from pyspark.ml.feature import Bucketizer
 from pyspark.sql import functions as F
+from pyspark.sql import types as T
 
 from mondrian import partition_dataframe
+from utils import repartition_dataframe
 
 
-def quantile_fragmentation(df, quasiid_columns, column_score, fragments,
-                           colname, is_sampled=False, k=None):
-    """Generate a number of fragments by cutting a column over quantiles."""
-    # is_sampled parameter is used to avoid runtime errors
-    scores = [(column_score(df[column]), column) for column in quasiid_columns]
-    print('scores: {}'.format(scores))
-    for _, column in sorted(scores, reverse=True):
-        try:
-            quantiles = pd.qcut(df[column], fragments, labels=range(fragments))
-            print("{} quantiles generated from '{}'.".format(
-                fragments, column))
-            df[colname] = quantiles
-            return df
-        except Exception:
-            # cannot generate enough quantiles from this column.
-            print('cannot generate enough quantiles from {}.'.format(column))
-    raise Exception("Can't generate {} quantiles.".format(fragments))
+# Mondrian-based fragmentations
 
-
-def mondrian_fragmentation(df, quasiid_columns, sensitive_columns, column_score,
-                           is_valid, fragments, colname, k, is_sampled=False, scale=False, flat=False):
+def mondrian_without_parallelization(df, quasiid_columns, sensitive_columns,
+                                     column_score, is_valid, fragments, colname,
+                                     k=None, is_sampled=False, scale=False,
+                                     flat=False):
     """Generate a number of fragments by cutting columns over median."""
-    # generate fragments using mondrian
     if is_sampled:
         partitions, medians = partition_dataframe(df=df,
                                      quasiid_columns=quasiid_columns,
@@ -86,16 +74,62 @@ def mondrian_fragmentation(df, quasiid_columns, sensitive_columns, column_score,
         return df
 
 
-def create_fragments(df, quasiid_columns, column_score, fragments, colname,
-                     criteria, k,is_sampled=False):
-    """Encode sharding information in the dataset as a column."""
-    return criteria(df=df,
-                    quasiid_columns=quasiid_columns,
-                    column_score=column_score,
-                    fragments=fragments,
-                    colname=colname,
-                    is_sampled=is_sampled,
-                    k=k)
+def mondrian_with_parallelization(df, quasiid_columns, sensitive_columns,
+                                column_score, is_valid, fragments, colname,
+                                repartition_strategy, is_sampled=False):
+    """Distribute Mondrian starting from the initial cuts."""
+    # Initailize fragmentation column
+    df = df.withColumn(colname, F.lit(0))
+    if is_sampled:
+        df = df.withColumn('bucket', F.lit("[[[],[],[]]]"))
+
+    @F.pandas_udf(df.schema, F.PandasUDFType.GROUPED_MAP)
+    def single_cut(df):
+        if current_filter is None or df[colname][0] in current_filter:
+            df = mondrian_without_parallelization(
+                df, quasiid_columns, sensitive_columns, column_score,
+                is_valid, 2, colname, is_sampled=is_sampled, scale=True
+            )
+        return df
+
+    total_steps = math.ceil(math.log(fragments, 2))
+    current_filter = None
+    df.rdd.context.broadcast(current_filter)
+
+    print('\n[*] Cut 0 of', total_steps)
+    print('Number of pre-processing partitions:', df.rdd.getNumPartitions())
+    print('Partition ids:', df.select(colname).distinct().collect())
+
+    for step in range(1, total_steps + 1):
+        # Update filter to match the number of required fragements
+        if step == total_steps:
+            last_step_cuts = int(fragments - math.pow(2, total_steps - 1))
+            current_filter = {i for i in range(last_step_cuts)}
+            df.rdd.context.broadcast(current_filter)
+
+        # Distribute the execution of a single step of Mondrian
+        df = df \
+            .groupby(colname) \
+            .applyInPandas(single_cut.func, schema=single_cut.returnType).cache()
+
+        # Repartition dataframe for following work
+        if repartition_strategy == 'repartitionByRange':
+            df = df.repartitionByRange(colname)
+        elif repartition_strategy == 'customRepartition':
+            df = repartition_dataframe(df, min(2**step, fragments)) # ???
+
+        print(f'\n[*] Cut {step} of {total_steps}')
+        print('Number of pre-processing partitions:', df.rdd.getNumPartitions())
+        print('Partition ids:', df.select(colname).distinct().collect())
+
+    bins = []
+    if is_sampled:
+        for log in df.select("bucket").distinct().toPandas()['bucket']:
+            log = eval(log)
+            bins.append(log[0])
+
+    return df, bins
+
 
 def mondrian_buckets(df, bins):
     """ Emulates Spark Bucketizer when using Mondrian in sampled runs. """
@@ -115,21 +149,49 @@ def mondrian_buckets(df, bins):
         bucket_index += 1
     return df
 
-def get_fragments_quantiles(df, quasiid_columns, column_score, fragments):
-    """Compute quantiles on the best scoring quasi-identifier."""
+
+# Quantile-based fragmentations
+
+def quantile_fragmentation(df, quasiid_columns, column_score, fragments,
+                           colname):
+    """Generate a number of fragments by cutting a column over quantiles."""
     scores = [(column_score(df[column]), column) for column in quasiid_columns]
-    print('scores: {}'.format(scores))
+    print(f'scores: {scores}')
     for _, column in sorted(scores, reverse=True):
         try:
-            quantiles = df[column].quantile(np.linspace(0, 1, fragments + 1))
-            # avoid having duplicate quantiles
-            if len(set(quantiles)) != len(quantiles):
+            quantiles, bins = pd.qcut(df[column], fragments,
+                                      labels=range(fragments), retbins=True)
+            # avoid having duplicate bins
+            if len(set(bins)) != len(bins):
                 continue
 
-            print("{} quantiles generated from '{}'.".format(
-                fragments, column))
-            return column, quantiles.values
+            print(f"{fragments} quantiles generated from '{column}'.")
+            df[colname] = quantiles
+            return df, column, bins
         except Exception:
             # cannot generate enough quantiles from this column.
-            print('cannot generate enough quantiles from {}.'.format(column))
-    raise Exception("Can't generate {} quantiles.".format(fragments))
+            print(f'cannot generate enough quantiles from {column}.')
+    raise Exception(f"Can't generate {fragments} quantiles.")
+
+
+def quantile_buckets(df, column, bins):
+    """ Use Spark Bucketizer to encode fragmentation information. """
+    bins[0] = float("-inf")  # avoid out of Bucketizer bounds exception
+    bins[-1] = float("inf")  # avoid out of Bucketizer bounds exception
+
+    # Assign every row to bucket 0 when there is only one bucket
+    if len(bins) == 2:
+        df = df.withColumn('fragment', F.lit(0))
+        return df
+
+    # Use Bucketizer to encode fragmentation info
+    bucketizer = Bucketizer(splits=bins,
+                            inputCol=column,
+                            outputCol='fragment')
+    df = bucketizer.transform(df)
+
+    # Force fragmentation info to integer
+    df = df.withColumn('fragment',
+                        F.col('fragment').cast(T.IntegerType()))
+
+    return df
