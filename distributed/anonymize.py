@@ -40,6 +40,20 @@ from test import write_test_params
 from validation import get_validation_function
 
 
+SCORE_FUNCTIONS = {
+    'span': span,
+    'entropy': entropy,
+    'neg_entropy': neg_entropy,
+    'norm_span' : 'norm_span'
+}
+
+REPARTITIONS = {
+    'customRepartition': 'customRepartition',
+    'noRepartition': 'noRepartition',
+    'repartitionByRange': 'repartitionByRange'
+}
+
+
 def __generalization_preproc(job, df, spark):
     """Anonymization preprocessing to arrange generalizations.
 
@@ -147,37 +161,36 @@ def main():
         print("\tWait for 10 seconds to continue demo...")
         time.sleep(10)
 
-    # Parameters
+    # Parameters of the anonymization
     filename_in = job['input']
     filename_out = job['output']
-    # when repartition is not given it defaults to repartitionByRange
-    if 'repartition' in job and \
-        job['repartition'] in {'customRepartition',
-                               'repartitionByRange',
-                               'noRepartition'}:
-        repartition = job['repartition']
-    else:
-        repartition = 'repartitionByRange'
     id_columns = job.get('id_columns', [])
     redact = job.get('redact', False)
     quasiid_columns = job['quasiid_columns']
-    sensitive_columns = job.get('sensitive_columns')
-    flat = job.get("k_flat", False)
-    
-    # when column score is not given it defaults to span
-    score_functions = {'span': span,
-                       'entropy': entropy,
-                       'neg_entropy': neg_entropy,
-                       'norm_span' : 'norm_span'}
-    if 'column_score' in job and job['column_score'] in score_functions:
-        column_score = score_functions[job['column_score']]
-    else:
-        column_score = span
-    fragments = min(args.WORKERS, job.get('max_fragments', 10**6))
+    sensitive_columns = job.get('sensitive_columns', [])
     K = job.get('K')
     L = job.get('L')
+    flat = job.get("k_flat", False)
     use_categorical = job.get('use_categorical', [])
     measures = job.get('measures', [])
+    try:
+        column_score = SCORE_FUNCTIONS[job.get('column_score', 'span')]
+    except KeyError:
+        raise ValueError(f"Column score must be one of "
+                         f"{', '.join(SCORE_FUNCTIONS)}")
+
+    # Parameters guiding the distribution of the job on the cluster
+    fraction = job.get('fraction') if job.get('fraction') != 1 else None
+    if fraction is not None and (fraction <= 0 or fraction > 1):
+        raise ValueError("Fraction value must be in (0:1]")
+    fragments = min(args.WORKERS, job.get('max_fragments', 10**6))
+    parallel = job.get('parallel', False)
+    try:
+        repartition = REPARTITIONS[job.get('repartition',
+                                           'repartitionByRange')]
+    except KeyError:
+        raise ValueError(f"Repartition must be one of "
+                         f"{', '.join(REPARTITIONS)}")
 
     # Setup mondrian_fragmentation function
     mondrian = functools.partial(mondrian_fragmentation,
@@ -185,27 +198,20 @@ def main():
                                  is_valid=get_validation_function(K,L),
                                  flat=flat)
 
-    # when fraction is not given it defaults to None
-    if 'fraction' in job and 0 < job['fraction'] < 1:
-        fraction = job['fraction']
-    else:
-        fraction = None
-
     # when fragmentation is not given it defaults to quantile_fragmentation
     fragmentation_functions = {'mondrian': mondrian,
                                'quantile': quantile_fragmentation}
-    if 'fragmentation' in job and \
-            job['fragmentation'] in fragmentation_functions:
-        fragmentation = fragmentation_functions[job['fragmentation']]
-    else:
-        fragmentation = quantile_fragmentation
-
-    parallel = job['parallel'] if 'parallel' in job else False
+    try:
+        fragmentation = fragmentation_functions[job.get('fragmentation',
+                                                        'quantile')]
+    except KeyError:
+        raise ValueError(f"Fragmentation must be one of "
+                         f"{', '.join(fragmentation_functions)}")
 
     if not K and not L:
-        raise Exception("Both K and L parameters not given or equal to zero.")
+        raise ValueError("Both K and L parameters not given or equal to zero.")
     if L and not sensitive_columns:
-        raise Exception(
+        raise ValueError(
             "l-diversity needs to know which columns are sensitive."
         )
 
@@ -258,7 +264,7 @@ def main():
     print('\n[*] Fragmentation details')
     if not fraction:
 
-        if parallel and job['fragmentation'] == "mondrian":
+        if parallel and fragmentation == mondrian:
             print("\n[*] Run without sampling with partial parallelization")
             df = df.withColumn('fragment', F.lit(0))
 
@@ -312,7 +318,7 @@ def main():
 
 
         else:
-            run_type = "Mondrian" if job['fragmentation'] == "mondrian" else "Quantile"
+            run_type = "Mondrian" if fragmentation == mondrian else "Quantile"
             print(f"\n[*] Run without sampling - {run_type} cuts\n")
             # Create first cut
             pdf = create_fragments(df=pdf,
@@ -322,7 +328,7 @@ def main():
                                    colname='fragment',
                                    criteria=fragmentation,
                                    k=K)
-            if job['fragmentation'] == "quantile":
+            if fragmentation == quantile_fragmentation:
                 # Recreate the dataframe in a way that is appreciated by pyarrow.
                 pdf = pd.DataFrame.from_dict(pdf.to_dict())
             # Create spark dataframe
@@ -335,7 +341,7 @@ def main():
                 quasiid_range[i] = span(pdf[column])
     else:
 
-        if job['fragmentation'] == "mondrian":
+        if fragmentation == mondrian:
             # Compute bins on the sample
             if parallel:
                 print("\n[*] Sampled run with partial parallelization")

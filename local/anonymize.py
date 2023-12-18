@@ -30,6 +30,14 @@ from mondrian.visualization import visualizer
 from mondrian.test import result_handler
 
 
+SCORE_FUNCTIONS = {
+    'span': span,
+    'entropy': entropy,
+    'neg_entropy': neg_entropy,
+    'norm_span' : 'norm_span'
+}
+
+
 def __generalization_preproc(job, df):
     """Anonymization preprocessing to arrange generalizations.
 
@@ -127,15 +135,11 @@ def main():
     redact = job.get('redact', False)
     quasiid_columns = job['quasiid_columns']
     sensitive_columns = job.get('sensitive_columns', [])
-    # when column score is not given it defaults to span
-    score_functions = {'span': span,
-                       'entropy': entropy,
-                       'neg_entropy': neg_entropy,
-                       'norm_span': 'norm_span'}
-    if 'column_score' in job and job['column_score'] in score_functions:
-        column_score = score_functions[job['column_score']]
-    else:
-        column_score = span
+    try:
+        column_score = SCORE_FUNCTIONS[job.get('column_score', 'span')]
+    except KeyError:
+        raise ValueError(f"Column score must be one of "
+                         f"{', '.join(SCORE_FUNCTIONS)}")
     K = job.get('K')
     L = job.get('L')
     measures = job.get('measures', [])
@@ -144,11 +148,11 @@ def main():
         test_measures["K"] = K
 
     if not K and not L:
-        raise Exception("Both K and L parameters not given or equal to zero.")
+        raise ValueError("Both K and L parameters not given or equal to zero.")
     if L:
         test_measures["L"] = L
         if not sensitive_columns:
-            raise Exception(
+            raise ValueError(
                 "l-diversity needs to know which columns are sensitive."
             )
 
