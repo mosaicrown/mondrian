@@ -160,8 +160,6 @@ def main():
             if 'taxonomy_ordering' in qi and qi['taxonomy_ordering'] is not None:
                 categoricals_with_order[qi['qi_name']] = qi['taxonomy_ordering']
  
-    pdf = df.toPandas()
-
     init_quasiid_spans = None
     if column_score == "norm_span":
         # Compute the initial span of the quasi-identifiers columns
@@ -175,7 +173,7 @@ def main():
             categoricals_with_order=categoricals_with_order
         )
 
-    pdf.info()
+    # pdf.info()
 
     print('\n[*] Fragmentation details')
     preposition = "with" if to_sample else "without"
@@ -197,6 +195,7 @@ def main():
             )
         else:
             print(f"\n[*] Run {preposition} sampling - Mondrian cuts\n")
+            pdf = df.toPandas()
             ret = mondrian_without_parallelization(
                 df=pdf,
                 quasiid_columns=quasiid_columns,
@@ -227,6 +226,7 @@ def main():
     elif fragmentation == 'quantile':
         # Quantile
         print(f"\n[*] Run {preposition} sampling - Quantile cuts\n")
+        pdf = df.toPandas()
         pdf, column, bins = quantile_fragmentation(
             df=pdf,
             quasiid_columns=quasiid_columns,
