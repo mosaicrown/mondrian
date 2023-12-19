@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pandas as pd
 import binpacking
 import math
 
+
+# K-Flat partitioning
 
 def bin_packing(ser):
         freq = ser.value_counts()
@@ -24,7 +25,7 @@ def bin_packing(ser):
         dfl, dfr =  (ser.index[ser.isin(packed[0].keys())], ser.index[ser.isin(packed[1].keys())])
         return (dfl, dfr)
 
-# K-Flat partitioning
+
 def k_flat(ser,k):
     
     """Determine two sets of indices identifing the values to be stored in left
@@ -141,7 +142,9 @@ def k_flat(ser,k):
 
     return (dfl, dfr)
 
-# Functions that define Mondrian
+
+# Mondrian partitioning strategy
+
 def cut_column(ser, is_sampled=False, categoricals_with_order={}):
     """Determine two sets of indices identifing the values to be stored in left
     and right partitions after the cut.
@@ -175,8 +178,6 @@ def cut_column(ser, is_sampled=False, categoricals_with_order={}):
         dfl = ser.index[ser < median]
         dfr = ser.index[ser >= median]
     return (dfl, dfr) if not is_sampled else (dfl, dfr, median)
-
-
 
 
 def partition_dataframe(df,
@@ -259,6 +260,4 @@ def partition_dataframe(df,
             print('No valid cut for this partition. Keeping it intact.')
 
     partitions = finished_partitions if num_partitions == float("inf") else [p.index for p in partitions] + to_add_again
-    if is_sampled:
-        return partitions, medians + medians_to_add_again
-    return partitions
+    return partitions, medians + medians_to_add_again

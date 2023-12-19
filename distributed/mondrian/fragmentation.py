@@ -30,25 +30,17 @@ def mondrian_without_parallelization(df, quasiid_columns, sensitive_columns,
                                      k=None, is_sampled=False, scale=False,
                                      flat=False):
     """Generate a number of fragments by cutting columns over median."""
-    if is_sampled:
-        partitions, medians = partition_dataframe(df=df,
-                                     quasiid_columns=quasiid_columns,
-                                     sensitive_columns=sensitive_columns,
-                                     column_score=column_score,
-                                     is_valid=is_valid,
-                                     partitions=fragments,
-                                     k=k,
-                                     is_sampled=is_sampled)
-    else:
-        partitions = partition_dataframe(df=df,
-                                     quasiid_columns=quasiid_columns,
-                                     sensitive_columns=sensitive_columns,
-                                     column_score=column_score,
-                                     is_valid=is_valid,
-                                     partitions=fragments,
-                                     k=k,
-                                     is_sampled=is_sampled,
-                                     flat=flat)
+    partitions, medians = partition_dataframe(
+        df=df,
+        quasiid_columns=quasiid_columns,
+        sensitive_columns=sensitive_columns,
+        column_score=column_score,
+        is_valid=is_valid,
+        partitions=fragments,
+        is_sampled=is_sampled,
+        k=k,
+        flat=flat
+    )
 
     if is_sampled and 'bucket' not in df.columns:
         # return partition and partitioning information if sampled run
@@ -75,8 +67,8 @@ def mondrian_without_parallelization(df, quasiid_columns, sensitive_columns,
 
 
 def mondrian_with_parallelization(df, quasiid_columns, sensitive_columns,
-                                column_score, is_valid, fragments, colname,
-                                repartition_strategy, is_sampled=False):
+                                  column_score, is_valid, fragments, colname,
+                                  repartition_strategy, is_sampled=False):
     """Distribute Mondrian starting from the initial cuts."""
     # Initailize fragmentation column
     df = df.withColumn(colname, F.lit(0))
@@ -161,7 +153,7 @@ def quantile_fragmentation(df, quasiid_columns, column_score, fragments,
         try:
             quantiles, bins = pd.qcut(df[column], fragments,
                                       labels=range(fragments), retbins=True)
-            # avoid having duplicate bins
+            # Avoid having duplicate bins
             if len(set(bins)) != len(bins):
                 continue
 

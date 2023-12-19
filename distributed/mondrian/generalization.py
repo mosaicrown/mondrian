@@ -117,11 +117,11 @@ def _create_numeric_taxonomy(df, colname, fanout, accuracy, digits):
 
 
 def _taxonomize_numeric(df,
-                         col_label,
-                         fanout,
-                         accuracy,
-                         digits=3,
-                         debug=False):
+                        col_label,
+                        fanout,
+                        accuracy,
+                        digits=3,
+                        debug=False):
     """
     Creates a taxonomy of a pandas numeric column of values
     WARNIN: for numeric values only

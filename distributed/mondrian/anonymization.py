@@ -132,14 +132,16 @@ def anonymize(df,
     the Mondrian algorithm. Then generalizes the quasi-identifier columns.
     """
     df = remove_id(df, id_columns, redact)
-    partitions = partition_dataframe(df=df,
-                                     quasiid_columns=quasiid_columns,
-                                     sensitive_columns=sensitive_columns,
-                                     column_score=column_score,
-                                     is_valid=get_validation_function(K,L),
-                                     k=K,
-                                     flat=len(GID) > 0,
-                                     categoricals_with_order=categoricals_with_order)
+    partitions, _ = partition_dataframe(
+        df=df,
+        quasiid_columns=quasiid_columns,
+        sensitive_columns=sensitive_columns,
+        column_score=column_score,
+        is_valid=get_validation_function(K,L),
+        k=K,
+        flat=len(GID) > 0,
+        categoricals_with_order=categoricals_with_order
+    )
     return generalize_quasiid(df=df,
                               partitions=partitions,
                               quasiid_columns=quasiid_columns,

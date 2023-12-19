@@ -225,6 +225,7 @@ def main():
             df = mondrian_buckets(df, bins)
     elif fragmentation == 'quantile':
         # Quantile
+        # TODO: Add parallel implementation of the quantile fragmentation
         print(f"\n[*] Run {preposition} sampling - Quantile cuts\n")
         pdf = df.toPandas()
         pdf, column, bins = quantile_fragmentation(
@@ -364,7 +365,7 @@ def main():
     measures_log["L"] = L
     measures_log["fraction"] = fraction
 
-    # TODO: add a column to the output schema to keep information on the
+    # TODO: Add a column to the output schema to keep information on the
     #       equivalent classes to avoid reconstructing them from scratch
     #       in the evaluation of the metrics
     if measures:
@@ -372,7 +373,8 @@ def main():
 
         # Create Discernability Penalty udf
         schema = T.StructType(
-            [T.StructField('information_loss', T.LongType(), nullable=False)])
+            [T.StructField('information_loss', T.LongType(), nullable=False)]
+        )
 
         @F.pandas_udf(schema, F.PandasUDFType.GROUPED_MAP)
         def discernability_penalty_udf(adf):
@@ -382,7 +384,8 @@ def main():
 
         # Create Normalized Certainty Penalty udf
         schema = T.StructType(
-            [T.StructField('information_loss', T.DoubleType(), nullable=False)])
+            [T.StructField('information_loss', T.DoubleType(), nullable=False)]
+        )
 
         @F.pandas_udf(schema, F.PandasUDFType.GROUPED_MAP)
         def normalized_certainty_penalty_udf(adf):
