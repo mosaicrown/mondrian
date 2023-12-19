@@ -56,17 +56,10 @@ def _create_numeric_taxonomy(df, colname, fanout, accuracy, digits):
     :digits: The number of decimals to be used to for partition boundaries
     :returns: The taxonomy of nodes, plus some useful metadata
     """
-    # column data extraction    
-    maxv = df.select([F.max(f"{colname}")]).collect()[0][f'max({colname})']
-    minv = df.select([F.min(f"{colname}")]).collect()[0][f'min({colname})']
-    # print(f"\n[*]Maxvalue: {maxv}\n")
-
-    vals = df.toPandas()[f'{colname}'].unique()
-    #vals = df.select(F.col(colname)).toPandas()
-    # print(vals)
-    
-    #vals = df[f'{colname}'].toPandas()
-    #vals= vals.unique().tolist()
+    # Extract max, min, and distinct values of the given column
+    funcs = (F.max(F.col(colname)), F.min(F.col(colname)))
+    maxv, minv = df.agg(*funcs).collect()[0]
+    vals = [row[colname] for row in df.select(colname).distinct().collect()]
 
     #print("Fanout: {} - Accuracy: {} - Digits{}".format(fanout, accuracy, digits))
 
