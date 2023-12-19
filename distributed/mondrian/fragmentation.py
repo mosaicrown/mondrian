@@ -166,7 +166,8 @@ def quantile_fragmentation(df, quasiid_columns, column_score, fragments,
                 continue
 
             print(f"{fragments} quantiles generated from '{column}'.")
-            df[colname] = quantiles
+            # Update colname with integer quantile assignments
+            df[colname] = quantiles.astype('int32')
             return df, column, bins
         except Exception:
             # cannot generate enough quantiles from this column.

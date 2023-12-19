@@ -241,8 +241,6 @@ def main():
                 .format(extension).load(filename_in)
             df = quantile_buckets(df, column, bins)
         else:
-            # Recreate the dataframe in a way that is appreciated by pyarrow.
-            pdf = pd.DataFrame.from_dict(pdf.to_dict())
             # Distribute dataframe
             df = spark.createDataFrame(pdf)
 
