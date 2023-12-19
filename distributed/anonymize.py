@@ -137,10 +137,10 @@ def main():
         print("\tWait for 10 seconds to continue demo...")
         time.sleep(10)
 
-    print('\n[*] Using {} initial partitions\n'.format(fragments))
+    print('\n[*] Using {} initial partitions'.format(fragments))
 
     # Read file according to extension
-    print('[*] Reading from {}\n'.format(filename_in))
+    print(f'\n[*] Reading from {filename_in}')
     extension = get_extension(filename_in)
     df = spark.read \
         .options(header='true', inferSchema='true') \
@@ -194,6 +194,9 @@ def main():
                 is_sampled=to_sample
             )
         else:
+            # NOTE: This is currently the only fragmentation technique
+            # explicitly supporting the K-Flat partitioning strategy (however
+            # others work as well)
             print(f"\n[*] Run {preposition} sampling - Mondrian cuts\n")
             pdf = df.toPandas()
             ret = mondrian_without_parallelization(
