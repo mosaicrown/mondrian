@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM bitnami/spark:3.0.1
+FROM bitnami/spark:3.5.0
 
 USER root
 
-# [app] install hadoop client
-RUN curl -o hadoop.tar.gz https://archive.apache.org/dist/hadoop/common/hadoop-3.2.1/hadoop-3.2.1.tar.gz && \
-    tar -xzvf hadoop.tar.gz && mv hadoop-3.2.1 ../hadoop && rm hadoop.tar.gz
+# [build] install curl command
+RUN apt update && apt install -y curl
 
-# [master, worker] upgrade python from 3.6.13 to 3.8.12
-RUN . /opt/bitnami/scripts/libcomponent.sh && component_unpack "python" "3.8.12-12" --checksum c081f7f9663d4d64e7f26d6e6a77b3860ee1f39c309bd564f801c39192042d2f
+# [app] install hadoop client
+RUN curl -o hadoop.tar.gz https://archive.apache.org/dist/hadoop/common/hadoop-3.2.1/hadoop-3.2.1.tar.gz
+RUN tar -xzf hadoop.tar.gz && mv hadoop-3.2.1 ../hadoop && rm hadoop.tar.gz
 
 # [master, worker] install application requirements
 COPY requirements.txt /tmp/
