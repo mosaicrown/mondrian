@@ -16,7 +16,6 @@ import json
 import math
 from collections import defaultdict
 
-import numpy as np
 import pandas as pd
 import treelib
 
@@ -352,13 +351,13 @@ def generalize_to_lcc(values, taxonomy):
 def generalize_to_cp(ser=None, debug=False, hidemark="*", t=None):
     """
     Given a pandas array of categorical items, set all its values to the longest common prefix
-    :ser: The pandas ser of categorical objects
+    :ser: List of unique categorical values
     :hidemark: Placeholder used to hide information
     """
     # first implementation (easy solution)
     # check empty column
     if ser is not None:
-        col = np.unique(ser)
+        col = ser
     else:
         df = ""
         with open(t) as f:

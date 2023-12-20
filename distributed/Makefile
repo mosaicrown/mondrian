@@ -1,4 +1,4 @@
-.PHONY: all addlicense clean start stop up down run _run shell _shell notebook _notebook usa2018 _usa2018 poker _poker usa1990 _usa1990 add_workers
+.PHONY: _adults _poker _run _sub_k _transactions _usa1990 _usa2018 _usa2019 all add_workers adults check_deps check_spark_image clean clean_test_files down poker run start stop transactions up usa1990 usa2018 usa2019
 
 SHELL              	:= /bin/bash
 REQUIRED_BINS      	:= docker docker-compose
@@ -44,7 +44,7 @@ clean: check_deps
 	docker-compose build spark-master spark-worker
 	@ touch $@
 
-sub_k:
+_sub_k:
 	@if [ ${K} != -1 ]; then\
 		sed -i -e 's/"K":.\+,/"K": ${K},/g' ./config/${CONFIG}.json;\
 	fi	
@@ -66,31 +66,10 @@ stop down: check_deps
 	@ echo -e "\n[*] Shutting down Apache Spark cluster.\n"
 	docker-compose kill
 
-_shell: check_deps
-	@ echo -e "\n[*] Running pyspark.\n"
-	- docker exec \
-		-it \
-		-e PYSPARK_DRIVER_PYTHON=ipython \
-		spark-driver \
-		pyspark
-
-shell: | start _shell stop
-
-_notebook: check_deps
-	@ echo -e "\n[*] Running jupyter notebook.\n"
-	- docker exec \
-		-it \
-		-e PYSPARK_DRIVER_PYTHON="jupyter" \
-    	-e PYSPARK_DRIVER_PYTHON_OPTS="notebook --ip 0.0.0.0 --port 8888 --no-browser --allow-root" \
-		spark-driver \
-		pyspark
-
-notebook: | start _notebook stop
-
 $(PACKAGE_ZIP): $(PACKAGE)
 	cd $(PACKAGE); zip -r ../$(PACKAGE_ZIP) .
 
- $(OUTPUT_DIR):
+$(OUTPUT_DIR):
 	mkdir -p $(OUTPUT_DIR)
 
 run adults: | start _run stop
@@ -110,7 +89,7 @@ _run _adults: check_deps $(PACKAGE_ZIP) $(OUTPUT_DIR)
 		spark-driver \
 		/mondrian/script/submit.sh
 
-usa2018: | start sub_k _usa2018 stop
+usa2018: | start _sub_k _usa2018 stop
 
 _usa2018: check_deps $(PACKAGE_ZIP) $(OUTPUT_DIR)
 	@ echo -e "\n[*] Running mondrian on dataset/usa2018.csv.\n"
@@ -159,7 +138,7 @@ _usa1990: check_deps $(PACKAGE_ZIP) $(OUTPUT_DIR)
 		spark-driver \
 		/mondrian/script/submit.sh
 
-usa2019: | start sub_k _usa2019 stop
+usa2019: | start _sub_k _usa2019 stop
 _usa2019: check_deps $(PACKAGE_ZIP) $(OUTPUT_DIR)
 	@ echo -e "\n[*] Running mondrian on dataset/usa2019.csv\n"
 	- docker exec \
@@ -175,7 +154,7 @@ _usa2019: check_deps $(PACKAGE_ZIP) $(OUTPUT_DIR)
 		spark-driver \
 		/mondrian/script/submit.sh
 
-transactions: | start sub_k _transactions stop
+transactions: | start _sub_k _transactions stop
 _transactions: check_deps $(PACKAGE_ZIP) $(OUTPUT_DIR)
 	@ echo -e "\n[*] Running mondrian on dataset/transactions.csv\n"
 	- docker exec \

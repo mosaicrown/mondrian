@@ -16,7 +16,6 @@ import json
 import math
 from collections import defaultdict
 
-import numpy as np
 import pandas as pd
 import treelib
 from pyspark.sql import functions as F
@@ -359,7 +358,7 @@ def generalize_to_cp(ser=None, debug=False, hidemark="*", t=None):
     # first implementation (easy solution)
     # check empty column
     if ser is not None:
-        col = np.unique(ser)
+        col = ser
     else:
         df = ""
         with open(t) as f:
