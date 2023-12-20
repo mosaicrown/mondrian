@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PATH="/opt/bitnami/hadoop/bin:${PATH}"
-
 echo "[*] Exit Hadoop safe mode"
 hdfs dfsadmin -D 'fs.defaultFS=hdfs://namenode:8020' -safemode forceExit
 

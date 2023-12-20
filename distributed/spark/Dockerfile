@@ -20,8 +20,8 @@ USER root
 RUN apt update && apt install -y curl
 
 # [app] install hadoop client
-RUN curl -o hadoop.tar.gz https://archive.apache.org/dist/hadoop/common/hadoop-3.2.1/hadoop-3.2.1.tar.gz
-RUN tar -xzf hadoop.tar.gz && mv hadoop-3.2.1 ../hadoop && rm hadoop.tar.gz
+RUN curl -o hadoop.tar.gz https://archive.apache.org/dist/hadoop/common/hadoop-3.3.6/hadoop-3.3.6.tar.gz
+RUN tar -xzf hadoop.tar.gz && mv hadoop-3.3.6 ../hadoop && rm hadoop.tar.gz
 
 # [master, worker] install application requirements
 COPY requirements.txt /tmp/

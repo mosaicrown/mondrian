@@ -15,6 +15,8 @@ SPARK_MASTER_PORT	:= 7077
 WORKER_MEMORY		:= 2G
 DRIVER_MEMORY		:= 2G
 
+COMPOSE				:= SPARK_WORKER_MEMORY=$(WORKER_MEMORY) docker-compose
+
 K := -1
 CONFIG := placeholder
 
@@ -51,13 +53,13 @@ _sub_k:
 
 start up: check_deps .spark.build
 	@ echo -e "\n[*] Starting Apache Spark cluster on docker with $(WORKERS) workers.\n"
-	SPARK_WORKER_MEMORY=${WORKER_MEMORY} docker-compose up -d --scale spark-worker=$(WORKERS) spark-master spark-worker namenode datanode spark-driver
+	$(COMPOSE) up -d --scale spark-worker=$(WORKERS) spark-master spark-worker namenode datanode spark-driver
 	@ echo -e "\n[*] Wait till Hadoop is up."
-	@ sleep 3
+	@ sleep 5
 	@ echo -e "\n[*] Initializing Hadoop Distributed File System.\n"
-	docker-compose run init-hdfs
+	$(COMPOSE) run init-hdfs
 	@ echo -e "\n[*] Starting Apache Spark history server.\n"
-	docker-compose up -d spark-history-server
+	$(COMPOSE) up -d spark-history-server
 
 add_workers:
 	docker service scale spark_spark-worker=$(WORKERS)

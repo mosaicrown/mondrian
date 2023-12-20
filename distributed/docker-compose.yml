@@ -22,7 +22,8 @@ services:
     environment:
       - SPARK_MODE=master
     ports:
-      - 8080:8080
+      - 7077:7077 # spark
+      - 8080:8080 # web UI
 
   spark-worker:
     build: spark
@@ -50,35 +51,32 @@ services:
       - SPARK_APP_PYFILES=/mondrian/mondrian.zip
       - SPARK_APP=/mondrian/anonymize.py
     ports:
-      - 4040:4040
-      - 8888:8888
+      - 4040:4040 # web UI
 
   namenode:
-    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    image: apache/hadoop:3.3.6
+    command: ["hdfs", "namenode"]
     container_name: namenode
     volumes:
       - ./hdfs/namenode:/hadoop/dfs/name
-    environment:
-      - CLUSTER_NAME=test
     env_file:
       - ./hadoop.env
     ports:
-      - 8020:8020
-      - 9870:9870
+      - 8020:8020 # Hadoop
+      - 9870:9870 # web UI
       
   datanode:
-    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    image: apache/hadoop:3.3.6
+    command: ["hdfs", "datanode"]
     depends_on: 
       - namenode
     volumes:
       - ./hdfs/datanode:/hadoop/dfs/data
     env_file:
       - ./hadoop.env
-    ports:
-      - 9864:9864
 
   init-hdfs:
-    build: spark
+    image: apache/hadoop:3.3.6
     depends_on:
       - namenode
       - datanode
@@ -93,4 +91,4 @@ services:
       - datanode
     command: ./sbin/start-history-server.sh
     ports:
-      - 18080:18080
+      - 18080:18080 # web UI
