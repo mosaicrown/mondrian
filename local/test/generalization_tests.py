@@ -44,7 +44,7 @@ def _prefix_test01():
     ]
 
     for t in prefix_tests:
-        gnrlz.__generalize_to_cp(debug=True, t=t)
+        gnrlz.generalize_to_cp(debug=True, t=t)
 
 
 def _taxonomy_test_01():
@@ -59,17 +59,17 @@ def _taxonomy_test_01():
     )
 
     vals = ["daughter2 gc_d1", "daughter gc_d1"]
-    category = gnrlz.__generalize_to_lcc(vals, taxonomy)
+    category = gnrlz.generalize_to_lcc(vals, taxonomy)
     print("\nvals: {}".format(vals))
     print("Categories: {}".format(category))
 
     vals = ["daughter2 gc_d1", "son"]
-    category = gnrlz.__generalize_to_lcc(vals, taxonomy)
+    category = gnrlz.generalize_to_lcc(vals, taxonomy)
     print("\nvals: {}".format(vals))
     print("Categories: {}".format(category))
 
     vals = ["grandchild s1"]
-    category = gnrlz.__generalize_to_lcc(vals, taxonomy)
+    category = gnrlz.generalize_to_lcc(vals, taxonomy)
     print("\nvals: {}".format(vals))
     print("Categories: {}".format(category))
 
@@ -84,12 +84,12 @@ def _taxonomy_test_02():
                                                    debug=True)
 
     vals = ["Poland", "Italy"]
-    category = gnrlz.__generalize_to_lcc(vals, taxonomy)
+    category = gnrlz.generalize_to_lcc(vals, taxonomy)
     print("\nvals: {}".format(vals))
     print("Categories: {}".format(category))
 
     vals = ["?", "Oceania"]
-    category = gnrlz.__generalize_to_lcc(vals, taxonomy)
+    category = gnrlz.generalize_to_lcc(vals, taxonomy)
     print("\nvals: {}".format(vals))
     print("Categories: {}".format(category))
 
@@ -105,7 +105,7 @@ def _numeric_generalization_test_01():
     values_list = [1, 2, 16, 16]
 
     fanout = 4
-    taxonomy, minv = gnrlz.__taxonomize_numeric(df=df,
+    taxonomy, minv = gnrlz._taxonomize_numeric(df=df,
                                                 col_label="education-num",
                                                 fanout=fanout,
                                                 accuracy=2.5,
@@ -114,11 +114,11 @@ def _numeric_generalization_test_01():
     print("\n[*] Generalize to least common partition for values: " + "{" +
           "; ".join(map(str, set(values_list))) + "}",
           end="\n")
-    partition = gnrlz.__generalize_to_lcp(values_list, taxonomy, minv, fanout)
+    partition = gnrlz.generalize_to_lcp(values_list, taxonomy, minv, fanout)
     print("[*] Partition found: " + partition, end="\n")
 
     fanout = 2
-    taxonomy, minv = gnrlz.__taxonomize_numeric(df=df,
+    taxonomy, minv = gnrlz._taxonomize_numeric(df=df,
                                                 col_label="education-num",
                                                 fanout=fanout,
                                                 accuracy=0.227555,
@@ -127,11 +127,11 @@ def _numeric_generalization_test_01():
     print("\n[*] Generalize to least common partition for values: " + "{" +
           "; ".join(map(str, set(values_list))) + "}",
           end="\n")
-    partition = gnrlz.__generalize_to_lcp(values_list, taxonomy, minv, fanout)
+    partition = gnrlz.generalize_to_lcp(values_list, taxonomy, minv, fanout)
     print("[*] Partition found: " + partition, end="\n")
 
     fanout = 25
-    taxonomy, minv = gnrlz.__taxonomize_numeric(df=df,
+    taxonomy, minv = gnrlz._taxonomize_numeric(df=df,
                                                 col_label="education-num",
                                                 fanout=fanout,
                                                 accuracy=7.8,
@@ -140,7 +140,7 @@ def _numeric_generalization_test_01():
     print("\n[*] Generalize to least common partition for values: " + "{" +
           "; ".join(map(str, set(values_list))) + "}",
           end="\n")
-    partition = gnrlz.__generalize_to_lcp(values_list, taxonomy, minv, fanout)
+    partition = gnrlz.generalize_to_lcp(values_list, taxonomy, minv, fanout)
     print("[*] Partition found: " + partition, end="\n")
 
 
