@@ -228,25 +228,32 @@ def main():
             df = mondrian_buckets(df, bins)
     elif fragmentation == 'quantile':
         # Quantile
-        # TODO: Add parallel implementation of the quantile fragmentation
-        print(f"\n[*] Run {preposition} sampling - Quantile cuts\n")
-        pdf = df.toPandas()
-        pdf, column, bins = quantile_fragmentation(
+        if is_parallel:
+            print(f"\n[*] Run {preposition} sampling and parallelization"
+                  f" - Quantile cuts")
+            pdf = df.pandas_api()
+        else:
+            print(f"\n[*] Run {preposition} sampling - Quantile cuts\n")
+            pdf = df.toPandas()
+
+        column, bins = quantile_fragmentation(
             df=pdf,
             quasiid_columns=quasiid_columns,
             column_score=column_score,
-            fragments=fragments,
-            colname='fragment'
+            fragments=fragments
         )
+
         if to_sample:
             # Read entire file in distributed manner
             df = spark.read \
                 .options(header='true', inferSchema='true') \
                 .format(extension).load(filename_in)
-            df = quantile_buckets(df, column, bins)
-        else:
+        elif not is_parallel:
             # Distribute dataframe
             df = spark.createDataFrame(pdf)
+
+        # Paritition dataframe according to the bins
+        df = quantile_buckets(df, column, bins)
 
     # Check result of the initial fragmentation
     sizes = df.groupBy('fragment').count()

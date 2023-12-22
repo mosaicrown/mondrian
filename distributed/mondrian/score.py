@@ -20,7 +20,7 @@ import scipy.stats
 def entropy(ser):
     """Calculate the entropy of the passed `pd.Series`."""
     counts = ser.value_counts()
-    return scipy.stats.entropy(counts)
+    return scipy.stats.entropy(counts.to_numpy())
 
 
 def neg_entropy(ser):

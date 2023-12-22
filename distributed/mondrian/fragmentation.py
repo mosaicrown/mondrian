@@ -14,7 +14,7 @@
 
 import math
 
-import pandas as pd
+import numpy as np
 from pyspark.ml.feature import Bucketizer
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
@@ -144,23 +144,20 @@ def mondrian_buckets(df, bins):
 
 # Quantile-based fragmentations
 
-def quantile_fragmentation(df, quasiid_columns, column_score, fragments,
-                           colname):
+def quantile_fragmentation(df, quasiid_columns, column_score, fragments):
     """Generate a number of fragments by cutting a column over quantiles."""
     scores = [(column_score(df[column]), column) for column in quasiid_columns]
     print(f'scores: {scores}')
     for _, column in sorted(scores, reverse=True):
         try:
-            quantiles, bins = pd.qcut(df[column], fragments,
-                                      labels=range(fragments), retbins=True)
+            bins = df[column].quantile(np.linspace(0, 1, fragments + 1))
+            bins = bins.to_numpy()
             # Avoid having duplicate bins
             if len(set(bins)) != len(bins):
                 continue
 
             print(f"{fragments} quantiles generated from '{column}'.")
-            # Update colname with integer quantile assignments
-            df[colname] = quantiles.astype('int32')
-            return df, column, bins
+            return column, bins
         except Exception:
             # cannot generate enough quantiles from this column.
             print(f'cannot generate enough quantiles from {column}.')
