@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-echo "[*] Exit Hadoop safe mode"
+echo -e "\n[*] Exit Hadoop safe mode"
 hdfs dfsadmin -D 'fs.defaultFS=hdfs://namenode:8020' -safemode forceExit
 
 echo -e "\n[*] Create expected directory structure"
