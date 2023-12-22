@@ -304,11 +304,15 @@ def main():
             df,
             quasiid_columns
         )
-        column_score = functools.partial(
-            norm_span,
-            total_spans=quasiid_spans_by_name,
-            categoricals_with_order=categoricals_with_order
-        )
+
+        # Update scoring with normalized span by passing the new total span of
+        # the quasi-identifiers columns
+        if (init_quasiid_spans and to_sample):
+            column_score = functools.partial(
+                norm_span,
+                total_spans=quasiid_spans_by_name,
+                categoricals_with_order=categoricals_with_order
+            )
 
     # Create the pandas udf
     @F.pandas_udf(schema, F.PandasUDFType.GROUPED_MAP)

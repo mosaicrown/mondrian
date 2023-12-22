@@ -20,11 +20,11 @@ DRIVER_MEMORY="${DRIVER_MEMORY:-2g}"
 
 if [[ -n ${LOCAL_DATASET} && -n ${HDFS_DATASET} ]]
 then
-    echo "[*] Load dataset to the Hadoop Distributed File System"
+    echo -e "\n[*] Load dataset to the Hadoop Distributed File System"
     hadoop fs -put -f ${LOCAL_DATASET} ${HDFS_DATASET}
 fi
 
-echo "[*] Submit Spark Job"
+echo -e "\n[*] Submit Spark Job"
 spark-submit \
     --master ${SPARK_MASTER_URL} \
     --conf spark.eventLog.enabled=true \
