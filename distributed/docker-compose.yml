@@ -57,10 +57,13 @@ services:
 
   namenode:
     image: apache/hadoop:3.3.6
-    command: ["hdfs", "namenode"]
     container_name: namenode
+    hostname: namenode
+    command: ["hdfs", "namenode"]
     env_file:
       - ./hadoop.env
+    environment:
+      - ENSURE_NAMENODE_DIR=/tmp/hadoop-root/dfs/name
     ports:
       - 8020:8020 # Hadoop
       - 9870:9870 # web UI
