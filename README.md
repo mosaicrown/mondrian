@@ -9,7 +9,7 @@ The tool relies on Pandas UDFs and Apache Arrow.
 ## Prerequisites
 
 * [docker](https://docs.docker.com/get-docker/)
-* [docker-compose](https://docs.docker.com/compose/install/)
+* [docker compose](https://docs.docker.com/compose/install/)
 
 ### USA 2018 dataset
 

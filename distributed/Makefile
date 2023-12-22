@@ -1,7 +1,6 @@
 .PHONY: _adults _poker _run _sub_k _transactions _usa1990 _usa2018 _usa2019 all add_workers adults check_deps check_spark_image clean clean_test_files down poker run start stop transactions up usa1990 usa2018 usa2019
 
 SHELL              	:= /bin/bash
-REQUIRED_BINS      	:= docker docker-compose
 
 PACKAGE				:= mondrian
 PACKAGE_ZIP			:= $(PACKAGE).zip
@@ -15,7 +14,7 @@ SPARK_MASTER_PORT	:= 7077
 WORKER_MEMORY		:= 2G
 DRIVER_MEMORY		:= 2G
 
-COMPOSE				:= WORKERS=$(WORKERS) SPARK_WORKER_MEMORY=$(WORKER_MEMORY) docker-compose
+COMPOSE				:= WORKERS=$(WORKERS) SPARK_WORKER_MEMORY=$(WORKER_MEMORY) docker compose
 
 K := -1
 CONFIG := placeholder
@@ -30,8 +29,8 @@ clean_test_files:
 	docker exec -t spark-driver /mondrian/script/clean_files.sh
 
 check_deps:
-	$(foreach bin,$(REQUIRED_BINS),\
-		$(if $(shell which $(bin)),,$(error Please install `$(bin)`)))
+	$(if $(shell which docker),,$(error Please install `docker`))
+	$(if $(shell which docker compose),,$(error Please install `docker compose`))
 
 check_spark_image:
 	$(if $(shell docker images -q spark),,docker build -t spark ./spark)
@@ -57,7 +56,7 @@ start up: check_deps .spark.build
 	@ echo -e "\n[*] Wait till Hadoop is up."
 	@ sleep 5
 	@ echo -e "\n[*] Initializing Hadoop Distributed File System.\n"
-	$(COMPOSE) run init-hdfs
+	$(COMPOSE) run --rm init-hdfs
 	@ echo -e "\n[*] Starting Apache Spark history server.\n"
 	$(COMPOSE) up -d spark-history-server
 
@@ -66,7 +65,7 @@ add_workers:
 
 stop down: check_deps
 	@ echo -e "\n[*] Shutting down Apache Spark cluster.\n"
-	$(COMPOSE) kill
+	$(COMPOSE) stop
 
 $(PACKAGE_ZIP): $(PACKAGE)
 	cd $(PACKAGE); zip -r ../$(PACKAGE_ZIP) .
