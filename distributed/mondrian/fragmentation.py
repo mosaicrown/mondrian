@@ -132,7 +132,7 @@ def mondrian_buckets(df, bins):
         lines = []
         for column, value, sign in zip(columns, values, signs):
             if sign in comparison:
-                lines.append(f"{column} {sign} {value}")
+                lines.append(f"`{column}` {sign} {value}")
             else:
                 set_line = "', '".join(value)
                 lines.append(f"`{column}` in ('{set_line}')")
