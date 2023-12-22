@@ -22,17 +22,19 @@ services:
     environment:
       - SPARK_MODE=master
     ports:
-      - 7077:7077 # spark
+      - 7077:7077 # Spark
       - 8080:8080 # web UI
 
   spark-worker:
     build: spark
     depends_on:
       - spark-master
+    deploy:
+      replicas: $WORKERS
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
-      - SPARK_WORKER_MEMORY=${SPARK_WORKER_MEMORY}
+      - SPARK_WORKER_MEMORY=$SPARK_WORKER_MEMORY
       - SPARK_WORKER_CORES=1
 
   spark-driver:
@@ -57,8 +59,6 @@ services:
     image: apache/hadoop:3.3.6
     command: ["hdfs", "namenode"]
     container_name: namenode
-    volumes:
-      - ./hdfs/namenode:/hadoop/dfs/name
     env_file:
       - ./hadoop.env
     ports:
@@ -70,8 +70,8 @@ services:
     command: ["hdfs", "datanode"]
     depends_on: 
       - namenode
-    volumes:
-      - ./hdfs/datanode:/hadoop/dfs/data
+    deploy:
+      replicas: $WORKERS
     env_file:
       - ./hadoop.env
 

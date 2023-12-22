@@ -15,7 +15,7 @@ SPARK_MASTER_PORT	:= 7077
 WORKER_MEMORY		:= 2G
 DRIVER_MEMORY		:= 2G
 
-COMPOSE				:= SPARK_WORKER_MEMORY=$(WORKER_MEMORY) docker-compose
+COMPOSE				:= WORKERS=$(WORKERS) SPARK_WORKER_MEMORY=$(WORKER_MEMORY) docker-compose
 
 K := -1
 CONFIG := placeholder
@@ -38,12 +38,12 @@ check_spark_image:
 
 clean: check_deps
 	@ echo -e "\n[*] Removing docker containers.\n"
-	docker-compose rm --force --stop -v
+	$(COMPOSE) rm --force --stop -v
 	@- rm -f .*.build
 	@- rm -f $(PACKAGE_ZIP)
 
 .spark.build: $(shell find spark -type f)
-	docker-compose build spark-master spark-worker
+	$(COMPOSE) build spark-master spark-worker
 	@ touch $@
 
 _sub_k:
@@ -53,7 +53,7 @@ _sub_k:
 
 start up: check_deps .spark.build
 	@ echo -e "\n[*] Starting Apache Spark cluster on docker with $(WORKERS) workers.\n"
-	$(COMPOSE) up -d --scale spark-worker=$(WORKERS) spark-master spark-worker namenode datanode spark-driver
+	$(COMPOSE) up -d spark-master spark-worker namenode datanode spark-driver
 	@ echo -e "\n[*] Wait till Hadoop is up."
 	@ sleep 5
 	@ echo -e "\n[*] Initializing Hadoop Distributed File System.\n"
@@ -66,7 +66,7 @@ add_workers:
 
 stop down: check_deps
 	@ echo -e "\n[*] Shutting down Apache Spark cluster.\n"
-	docker-compose kill
+	$(COMPOSE) kill
 
 $(PACKAGE_ZIP): $(PACKAGE)
 	cd $(PACKAGE); zip -r ../$(PACKAGE_ZIP) .
