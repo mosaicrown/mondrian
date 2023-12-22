@@ -63,7 +63,7 @@ services:
     env_file:
       - ./hadoop.env
     environment:
-      - ENSURE_NAMENODE_DIR=/tmp/hadoop-root/dfs/name
+      - ENSURE_NAMENODE_DIR=/tmp/hadoop-hadoop/dfs/name
     ports:
       - 8020:8020 # Hadoop
       - 9870:9870 # web UI
