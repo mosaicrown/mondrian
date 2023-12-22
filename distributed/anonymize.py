@@ -114,7 +114,7 @@ def main():
     if fraction is not None and (fraction <= 0 or fraction > 1):
         raise ValueError("Fraction value must be in (0:1]")
     to_sample = (fraction is not None and fraction != 1)
-    fragments = min(args.WORKERS, job.get('max_fragments', 10**6))
+    fragments = int(job.get('fragments', args.WORKERS))
     is_parallel = job.get('parallel', False)
     repartition = job.get('repartition', 'repartitionByRange')
     if repartition not in REPARTITIONS:
