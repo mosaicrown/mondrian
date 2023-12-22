@@ -73,7 +73,7 @@ services:
     depends_on: 
       - namenode
     deploy:
-      replicas: $WORKERS
+      replicas: $DATANODES
     env_file:
       - ./hadoop.env
 

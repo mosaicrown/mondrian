@@ -6,6 +6,7 @@ PACKAGE				:= mondrian
 PACKAGE_ZIP			:= $(PACKAGE).zip
 OUTPUT_DIR	   		:= anonymized
 
+DATANODES			:= 1
 WORKERS            	:= 4
 DEMO		   		:= 0
 TEST				:= 0
@@ -14,7 +15,7 @@ SPARK_MASTER_PORT	:= 7077
 WORKER_MEMORY		:= 2G
 DRIVER_MEMORY		:= 2G
 
-COMPOSE				:= WORKERS=$(WORKERS) SPARK_WORKER_MEMORY=$(WORKER_MEMORY) docker compose
+COMPOSE				:= DATANODES=$(DATANODES) WORKERS=$(WORKERS) SPARK_WORKER_MEMORY=$(WORKER_MEMORY) docker compose
 
 K := -1
 CONFIG := placeholder
