@@ -36,6 +36,7 @@ services:
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_WORKER_MEMORY=$SPARK_WORKER_MEMORY
       - SPARK_WORKER_CORES=1
+      - PYARROW_IGNORE_TIMEZONE=1
 
   spark-driver:
     build: spark
@@ -52,6 +53,7 @@ services:
       - SPARK_EVENT_DIR=hdfs://namenode:8020/spark-events
       - SPARK_APP_PYFILES=/mondrian/mondrian.zip
       - SPARK_APP=/mondrian/anonymize.py
+      - PYARROW_IGNORE_TIMEZONE=1
     ports:
       - 4040:4040 # web UI
 
