@@ -27,13 +27,13 @@ check_deps:
 artifact_experiments: | check_deps clean _artifact_experiments
 
 _artifact_experiments: _extract_usa2018 clean_test_files
-	cd experiments/percom_artifact_experiments; ./runtime_test.sh 20 | tee runtime.log; ./loss_test.sh 5 "5 10 20" "0.0001" | tee loss.log
+	cd percom_artifact_experiments; ./runtime_test.sh 20 | tee runtime.log; ./loss_test.sh 5 "5 10 20" "0.0001" | tee loss.log
 
 clean_test_files: start
 	@ $(MAKE) -C distributed clean_test_files
 
 _extract_usa2018:
-	@ cd experiments/percom_artifact_experiments; ./extract_usa2018.sh
+	@ cd percom_artifact_experiments; ./extract_usa2018.sh
 
 
 # graphical user interface
