@@ -1,10 +1,13 @@
-# Spark based Mondrian
+# Scalable Distributed Data Anonymization for Large Datasets
 
-This repository implements Mondrian, a sanitization algorithm to achieve k-anonimity.
-This version of Mondrian is meant to perform sanitization over large datasets, and it is executed by an Apache Spark cluster with a varying number of executors.
-The l-diversity refinement is also supported.
+k-anonymity and l-diversity are two well-known privacy metrics that guarantee
+protection of the respondents of a dataset by obfuscating information that can
+disclose their identities and sensitive information.
 
-The tool relies on Pandas UDFs and Apache Arrow.
+This repository provides an extension of the Mondrian algorithm (an efficient
+and effective approach designed for achieving k-anonymity) for enforcing both
+k-anonimity and l-diversity over large datasets in a distributed manner,
+leveraging the Apache Spark framework.
 
 ## Prerequisites
 
@@ -13,6 +16,10 @@ The tool relies on Pandas UDFs and Apache Arrow.
 
 ### USA 2018 dataset
 
+> DISCLAIMER: The steps in this subsection are necessary only if you want to
+> reproduce the results shown in [1]. Otherwise, by default another version of
+> the USA 2018 dataset will be downloaded.
+
 We cannot upload the `usa2018.csv` dataset for [licencing reasons](https://ipums.org/about/terms).
 However you can get your own copy of the data from [https://usa.ipums.org/usa/](https://usa.ipums.org/usa/).
 
@@ -20,48 +27,82 @@ Our data selection is based on the American Community Servey 2018 sample (2018 A
 
 ## Run
 
-The Mondrian Docker app can be run with:
+To run the distributed anonymization tool over a toy example dataset:
 
 ```shell
 make
 ```
 
-The default workers number is 4, however it can be set with:
+This defaults to reading data from one datanode and running the anonymization
+algorithm with four worker nodes, however the scale of the cluster can be
+customized both in the number of datanodes and worker nodes with:
 
 ```shell
-make WORKERS=16
+make DATANODES=4 WORKERS=16
 ```
 
+Example runs over more realistic datasets are also there by using the
+`transactions`, `usa1990`, `usa2018`, and `usa2019` targets.
+
 ## Web interface
+
 To test the tool with your own datasets you can use our [web interface](./ui/README.md). To run it use:
 
 ```shell
 make ui
 ```
-The default number of workers available to do your anonymization job is 4, however it can be changed with:
+
+Again, the default behavior is to deploy a cluster built of one datanode and
+four worker nodes, but the number can easily be changed with:
+
 ```shell
-make ui WORKERS=16
+make ui DATANODES=4 WORKERS=16
 ```
 
 ## About Mondrian
 
-Mondrian is a sanitization algorithm that ensures a dataset to be compliant with the k-anonimity requirement (i.e., each person in a released dataset cannot be distinguished among k or more individuals).
-It is a greedy approximation algorithm, as its partitioning criteria evaluates only the current partition state.
-We focus on the strict version of it, or rather the one defyning a set of non-overlapping partitions.
+Mondrian is an efficient and effective approach originally proposed for
+achieving k-anonymity in a centralized scenario with the goal of making sure
+data of each person in a given dataset cannot be distinguished among k or more
+other individuals.
+
+Since the identification of the optimal transformation of the dataset (with
+respect to information loss) is a complex problem which is not practical to
+solve, Mondrian provides a greedy approximation of the solution by making a
+series of local partitioning decisions.
+
+There are two versions of the algorithm depending on whether the partitions
+are non-overlapping or overlapping. Our solution implements the 'strict'
+version of the algorithm where the partitions do not overlap.
 
 ## Workflow
 
-The tool simulates the execution of Mondrian on a cluster of nodes.
-The cluster is composed by an Hadoop Namenode and Datanode, plus a Spark driver and a varying number of Spark workers.
+The anonymization tool executes Mondrian over a cluster composed of an Hadoop
+Namenode and one/more Datanodes, a Spark master and a varying number of Spark
+workers.
 
-The dataset to be anonymized is initially stored on the Datanode.
-As execution starts, the dataset is sampled by the Spark Driver, which performs the first Mondrian cut identifying the set of dataset fragments based on a particular score function.
-This is crucial to handle datasets too large to fit into the memory of a single worker.
-Each fragment is then assigned to a Spark Worker, where Mondrian anonymization is performed.
-Before the anonymized fragmets are written to the Datanode, each Worker computes the information loss and send it to the Driver, so that it is possible to determine the global information loss.
+The dataset target of the anonymization is initially stored on the Hadoop
+Distributed File System (HDFS), and thus partitioned and replicated across the
+datanodes. Then, the Spark driver reads/samples the dataset and performs the
+first Mondrian cuts identifying the set of dataset fragments according to the
+scoring function of choise. Sampling the dataset in this early stage of the
+anonymization process is crucial to handle datasets too large to fit into the
+memory of the Spark driver. Once the dataset fragments have been identified,
+each fragment is assigned to a Spark worker, where the Mondrian anonymization
+is performed without need to exchange data with others. Finally, just before
+the anonymized dataset is written to HDFS, each worker computes the information
+loss and send it to the driver, so it is possible to determine a rough extimate
+of the quality of the anonymization.
 
-Each anonymization job is described with a json configuration file.
-It lists the input/output dataset name, classifies the dataset attributes (identifiers, quasi identifiers and sensitive), defines the sampling method, indicates the k-anonimity and l-diversity parameters, the scoring function to be used to determine the cuts, the set of custom generalization methods to be used for quasi identifiers (detailed below), and the information loss metrics to be computed.
+Each anonymization job is described with a json configuration file. It includes
+the input and output paths, classifies the dataset attributes in identifiers,
+quasi-identifiers and sensitive attrubutes, indicates the k-anonimity and
+l-diversity parameters, the scoring function to determine the cuts, the set of
+custom generalization methods for quasi-identifiers (if any), and the list of
+information loss metrics to compute. But, it also specifies information about
+the initial fragmentation of the dataset: the fraction of the dataset read,
+the fragmentation strategy (i.e., mondrian, quantile), and whether it is run
+in the driver or distributed over the workers.
 
 Here is an example of configuration file.
 
@@ -105,36 +146,71 @@ Here is an example of configuration file.
 }
 ```
 
-## Functions
+## Configurations
 
-The tool supports many functions.
+The tool supports many different configurations.
 
-To determine the cut column different functions can be used: span, entropy and negative entropy (to reverse the quasi-identifier order). Partitions cuts are determined using the median.
+The partitioning of the dataset across the workers is configurable by
+specifying the number of fragments (by default equal to the number of workers),
+the strategy to identify the fragments (i.e., mondrian, quantile), whether it
+is run in the driver or distributed over the workers, and how this partitions
+should be translated in Spark partitions.
+
+To determine the cut column different functions can be used: entropy, negative
+entropy (to reverse the order), normalized span, and span. On the other hand,
+the specific partitioning criteria for a given column depends on whether the
+column values have an ordering or not. When the values have a global order, the
+partitioning value is decided by the median, otherwise binpacking is used to
+determine a balanced partitioning.
 
 Multiple generalization methods on quasi-identifiers are available:
 
-* ranges (e.g., [5 - 10]);
-* sets (e.g., {Private, Public});
-* common prefix (e.g., 100**);
-* using numeric partitioning (a balanced tree constructed from the quasi-identifier numerical data based on fanout, accuracy and digits parameters);
-* using user-defined taxonomies (a taxonomy tree given by the user that guides the generalization of the quasi-identifier values).
+* ranges (e.g., [5 - 10])
+* sets (e.g., {Private, Public})
+* common prefix (e.g., 100**)
+* numeric partitioning (a balanced tree constructed from the quasi-identifier
+  numerical data based on fanout, accuracy and digits parameters)
+* user-defined taxonomies (a taxonomy tree given by the user that guides the
+  generalization of the quasi-identifier values)
 
-In both numeric partitioning and user-defined taxonomies the lowest common ancestor is used to generalize the set of values.
+In both numeric partitioning and user-defined taxonomies the lowest common
+ancestor is used to generalize the set of values.
 
 Three information loss metrics are available:
 
-* Discernability penalty;
-* Normalized certainty penalty;
-* Global certainty penalty.
+* discernability penalty
+* normalized certainty penalty
+* global certainty penalty
 
 ## Centralized version of Mondrian
 
-The centralized version of Mondrian is not based on Apache Spark, so it can be run without Docker.
-It is contained in the local folder and can be used to anonymize limited size datasets.
+To provide a comparison with the distributed approach, we also implemented a
+centralized version of Mondrian. This implementation can be found in the local
+folder and can be used to anonymize datasets of limited size.
 
-The centralized version only relies on pandas and numpy, and it is particularly useful to demonstrate the scalability of Mondrian over large datasets.
-A demo of it can be run with:
+The centralized version heavily relies on Pandas and NumPy, and we use it as a
+baseline to demonstrate the scalability of the distributed implementation of
+Mondrian over large datasets.
+
+To run this version over the same toy example dataset above use:
 
 ```shell
 make local-adults
 ```
+
+## Publications
+
+* [1] Sabrina De Capitani di Vimercati, Dario Facchinetti, Sara Foresti,
+  Gianluca Oldani, Stefano Paraboschi, Matthew Rossi, Pierangela Samarati,
+  **Scalable Distributed Anonymization Processing of Sensors Data**,
+  in *Proceedings of the 19th IEEE International Conference on Pervasive
+  Computing and Communications (PerCom)*, March 22-26, 2021
+* [2] Sabrina De Capitani di Vimercati, Dario Facchinetti, Sara Foresti,
+  Gianluca Oldani, Stefano Paraboschi, Matthew Rossi, Pierangela Samarati,
+  **Artifact: Scalable Distributed Anonymization Processing of Sensors Data**,
+  in *Proceedings of the 19th IEEE International Conference on Pervasive
+  Computing and Communications (PerCom)*, March 22-26, 2021
+* [3] Sabrina De Capitani di Vimercati, Dario Facchinetti, Sara Foresti,
+  Giovanni Livraga, Gianluca Oldani, Stefano Paraboschi, Matthew Rossi,
+  Pierangela Samarati, **Scalable Distributed Data Anonymization for Large
+  Datasets**, in *IEEE Transactions on Big Data (TBD)*, September 19, 2022
