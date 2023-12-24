@@ -197,8 +197,14 @@ distributed/hdfs
 *.gz
 
 # downloaded dataset
+local/dataset/usa1990.csv
 local/dataset/usa2018.csv
+local/dataset/usa2019.csv
+local/dataset/transactions.csv
+distributed/dataset/usa1990.csv
 distributed/dataset/usa2018.csv
+distributed/dataset/usa2019.csv
+distributed/dataset/transactions.csv
 
 # output of the anonymization
 local/anonymized

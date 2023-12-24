@@ -1,0 +1,11 @@
+{
+    "input": "dataset/usa1990.csv",
+    "output": "anonymized/usa1990.csv",
+    "quasiid_columns": ["AGE", "EDU", "OCC"],
+    "sensitive_columns": ["INCOME"],
+    "column_score": "span",
+    "K": 5,
+    "L": 2,
+    "quasiid_generalizations": [],
+    "measures": []
+}

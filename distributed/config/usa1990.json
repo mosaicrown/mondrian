@@ -1,0 +1,14 @@
+{
+  "input": "hdfs://namenode:8020/dataset/usa1990.csv",
+  "output": "hdfs://namenode:8020/anonymized/usa1990.csv",
+  "fraction": 1,
+  "quasiid_columns": ["AGE", "EDU", "OCC"],
+  "sensitive_columns": ["INCOME"],
+  "column_score": "span",
+  "fragmentation": "quantile",
+  "repartition": "repartitionByRange",
+  "K": 5,
+  "L": 2,
+  "quasiid_generalizations": [],
+  "measures": ["discernability_penalty", "normalized_certainty_penalty", "global_certainty_penalty"]
+}

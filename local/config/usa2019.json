@@ -1,0 +1,20 @@
+{
+    "input": "dataset/usa2019.csv",
+    "output": "anonymized/usa2019.csv",
+    "quasiid_columns": ["ST", "AGEP", "OCCP", "WAGP"],
+    "column_score": "span",
+    "K": 100,
+    "measures": ["discernability_penalty", "global_certainty_penalty"],
+    "quasiid_generalizations": [
+        {
+            "qi_name": "ST",
+            "generalization_type": "categorical",
+            "params": {
+                "taxonomy_tree": "taxonomy/us.json",
+                "create_ordering": true
+            }
+        }
+    ]
+
+}
+

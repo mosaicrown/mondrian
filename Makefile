@@ -1,4 +1,4 @@
-.PHONY: addlicense add-usa2019 adults all artifact_experiments check_deps check_spark_image clean clean_test_files down local local-adults local-poker local-usa2018 local-usa2019 notebook poker run shell start stop ui up usa2018 usa2019 
+.PHONY: addlicense adults all artifact_experiments check_deps clean clean_test_files down local local-adults local-poker local-usa2018 local-usa1990 local-usa2019 poker run start stop ui up usa2018 usa2019 usa1990 transactions
 
 .DEFAULT_GOAL  := all
 
@@ -14,10 +14,7 @@ addlicense:
 	go get -u github.com/google/addlicense
 	$(shell go env GOPATH)/bin/addlicense -c $(LICENSE_HOLDER) -l $(LICENSE_TYPE) .
 
-add-usa2019:
-	@ $(MAKE) -C download download-usa2019
-
-clean: | _clean_local _clean_docker _clean_ui
+clean: | _clean_local _clean_distributed _clean_ui
 
 check_deps:
 	$(foreach bin,$(REQUIRED_ARTIFACT_BINS),\
@@ -47,6 +44,9 @@ _clean_ui:
 local local-adults:
 	@ $(MAKE) -C local adults
 
+local-usa1990:
+	@ $(MAKE) -C local usa1990
+
 local-usa2018:
 	@ $(MAKE) -C local usa2018
 
@@ -66,23 +66,8 @@ all:
 start up:
 	@ $(MAKE) -C distributed start
 
-check_spark_image:
-	@ $(MAKE) -C distributed check_spark_image
-
 stop down:
 	@ $(MAKE) -C distributed stop
-
-shell:
-	@ $(MAKE) -C distributed shell
-
-_shell:
-	@ $(MAKE) -C distributed _shell
-
-notebook:
-	@ $(MAKE) -C distributed notebook
-
-_notebook:
-	@ $(MAKE) -C distributed _notebook
 
 run adults:
 	@ $(MAKE) -C distributed adults
@@ -102,11 +87,23 @@ poker:
 _poker:
 	@ $(MAKE) -C distributed _poker
 
+usa1990:
+	@ $(MAKE) -C distributed usa1990
+
+_usa1990:
+	@ $(MAKE) -C distributed _usa1990
+
 usa2019:
 	@ $(MAKE) -C distributed usa2019
 
 _usa2019:
 	@ $(MAKE) -C distributed _usa2019
 
-_clean_docker:
+transactions:
+	@ $(MAKE) -C distributed transactions
+
+_transactions:
+	@ $(MAKE) -C distributed _transactions
+
+_clean_distributed:
 	@ $(MAKE) -C distributed clean

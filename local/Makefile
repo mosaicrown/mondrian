@@ -1,8 +1,10 @@
-.PHONY: all clean run adults usa2018 tests 2dtest usa1990
+.PHONY: 2dtest all adults clean poker run tests usa1990 usa2018 usa2019
 
 ROOT_DIR       := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 SHELL          := /bin/bash
+MAKE		   := make --no-print-directory
+
 VENV           := $(ROOT_DIR)/venv
 VIRTUALENV     := python3 -m venv
 ACTIVATE       := $(VENV)/bin/activate
@@ -33,10 +35,16 @@ $(OUTPUT_DIR):
 run adults: $(VENV) $(OUTPUT_DIR)
 	$(PYTHON) $(APP) config/adults.json $(DEMO)
 
+usa1990: $(VENV) $(OUTPUT_DIR)
+	$(MAKE) -C ../download download-usa1990
+	$(PYTHON) $(APP) config/usa1990.json $(DEMO)
+
 usa2018: $(VENV) $(OUTPUT_DIR)
+	$(MAKE) -C ../download download-usa2018
 	$(PYTHON) $(APP) config/usa2018.json $(DEMO)
 
 usa2019: $(VENV) $(OUTPUT_DIR)
+	$(MAKE) -C ../download download-usa2019
 	$(PYTHON) $(APP) config/usa2019.json $(DEMO)
 
 poker: $(VENV) $(OUTPUT_DIR)

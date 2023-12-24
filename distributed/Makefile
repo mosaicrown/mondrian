@@ -1,6 +1,7 @@
-.PHONY: _adults _poker _run _sub_k _transactions _usa1990 _usa2018 _usa2019 all add_workers adults check_deps check_spark_image clean clean_test_files down poker run start stop transactions up usa1990 usa2018 usa2019
+.PHONY: _adults _poker _run _sub_k _transactions _usa1990 _usa2018 _usa2019 all adults check_deps clean clean_test_files down poker run start stop transactions up usa1990 usa2018 usa2019
 
 SHELL              	:= /bin/bash
+MAKE                := make --no-print-directory
 
 PACKAGE				:= mondrian
 PACKAGE_ZIP			:= $(PACKAGE).zip
@@ -33,9 +34,6 @@ check_deps:
 	$(if $(shell which docker),,$(error Please install `docker`))
 	$(if $(shell which docker compose),,$(error Please install `docker compose`))
 
-check_spark_image:
-	$(if $(shell docker images -q spark),,docker build -t spark ./spark)
-
 clean: check_deps
 	@ echo -e "\n[*] Removing docker containers.\n"
 	$(COMPOSE) rm --force --stop -v
@@ -60,9 +58,6 @@ start up: check_deps .spark.build
 	$(COMPOSE) run --rm init-hdfs
 	@ echo -e "\n[*] Starting Apache Spark history server.\n"
 	$(COMPOSE) up -d spark-history-server
-
-add_workers:
-	docker service scale spark_spark-worker=$(WORKERS)
 
 stop down: check_deps
 	@ echo -e "\n[*] Shutting down Apache Spark cluster.\n"
@@ -94,6 +89,7 @@ _run _adults: check_deps $(PACKAGE_ZIP) $(OUTPUT_DIR)
 usa2018: | start _sub_k _usa2018 stop
 
 _usa2018: check_deps $(PACKAGE_ZIP) $(OUTPUT_DIR)
+	$(MAKE) -C ../download download-usa2018
 	@ echo -e "\n[*] Running mondrian on dataset/usa2018.csv.\n"
 	- docker exec \
 		-t \
@@ -126,6 +122,7 @@ _poker: check_deps $(PACKAGE_ZIP) $(OUTPUT_DIR)
 
 usa1990: | start _usa1990 stop
 _usa1990: check_deps $(PACKAGE_ZIP) $(OUTPUT_DIR)
+	$(MAKE) -C ../download download-usa1990
 	@ echo -e "\n[*] Running mondrian on dataset/usa1990.csv.\n"
 	- docker exec \
 		-t \
@@ -142,6 +139,7 @@ _usa1990: check_deps $(PACKAGE_ZIP) $(OUTPUT_DIR)
 
 usa2019: | start _sub_k _usa2019 stop
 _usa2019: check_deps $(PACKAGE_ZIP) $(OUTPUT_DIR)
+	$(MAKE) -C ../download download-usa2019
 	@ echo -e "\n[*] Running mondrian on dataset/usa2019.csv\n"
 	- docker exec \
 		-t \
@@ -158,6 +156,7 @@ _usa2019: check_deps $(PACKAGE_ZIP) $(OUTPUT_DIR)
 
 transactions: | start _sub_k _transactions stop
 _transactions: check_deps $(PACKAGE_ZIP) $(OUTPUT_DIR)
+	$(MAKE) -C ../download download-transactions
 	@ echo -e "\n[*] Running mondrian on dataset/transactions.csv\n"
 	- docker exec \
 		-t \

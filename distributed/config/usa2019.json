@@ -1,0 +1,12 @@
+{
+    "input": "hdfs://namenode:8020/dataset/usa2019.csv",
+    "output": "hdfs://namenode:8020/anonymized/usa2019.csv",
+    "quasiid_columns": ["ST", "AGEP", "OCCP", "WAGP"],
+    "column_score": "span",
+    "fragmentation": "mondrian",
+    "repartition": "repartitionByRange",
+    "K": 100,
+    "use_categorical": ["ST", "OCCP"],
+    "k_flat": true
+}
+
