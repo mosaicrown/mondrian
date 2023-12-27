@@ -11,7 +11,7 @@ LICENSE_HOLDER := "Unibg Seclab (https://seclab.unibg.it)"
 REQUIRED_ARTIFACT_BINS := python3 pip3 zip gnuplot
 
 addlicense:
-	go get -u github.com/google/addlicense
+	go install github.com/google/addlicense@latest
 	$(shell go env GOPATH)/bin/addlicense -c $(LICENSE_HOLDER) -l $(LICENSE_TYPE) .
 
 clean: | _clean_local _clean_distributed _clean_ui
