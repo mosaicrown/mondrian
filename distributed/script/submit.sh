@@ -45,7 +45,7 @@ spark-submit \
 
 if [[ -n ${HDFS_ANONYMIZED_DATASET} && -n ${LOCAL_ANONYMIZED_DATASET} ]]
 then
-    echo "[*] Write anonyized dataset to local file system"
+    echo "[*] Write anonymized dataset to local file system"
     hadoop fs -getmerge ${HDFS_ANONYMIZED_DATASET} ${LOCAL_ANONYMIZED_DATASET}
     line=$(head --lines=1 ${LOCAL_ANONYMIZED_DATASET})
     sed -i '2,$ s/'$line'//g' ${LOCAL_ANONYMIZED_DATASET}
