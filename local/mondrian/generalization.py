@@ -109,11 +109,11 @@ def _create_numeric_taxonomy(col, fanout, accuracy, digits):
 
 
 def _taxonomize_numeric(df,
-                         col_label,
-                         fanout,
-                         accuracy,
-                         digits=3,
-                         debug=False):
+                        col_label,
+                        fanout,
+                        accuracy,
+                        digits=3,
+                        debug=False):
     """
     Creates a taxonomy of a pandas numeric column of values
     WARNIN: for numeric values only
@@ -241,7 +241,8 @@ def generalize_to_lcp(values, taxonomy, taxonomy_min_val, fanout):
     return taxonomy.get_node(root).tag
 
 
-def _read_categorical_taxonomy(taxonomy_json, debug=False, create_ordering=False):
+def _read_categorical_taxonomy(taxonomy_json, create_ordering=False,
+                               debug=False):
     """
     Reads a taxonomy of categories from a json collection
     :taxonomy_json: The collection to be read
@@ -425,7 +426,10 @@ def generalization_preproc(job, df):
             create_ordering = g_dict['params'].get('create_ordering', False)
             if t_db is None:
                 raise IncompleteGeneralizationInfo()
-            taxonomy, leaves_ordering = _read_categorical_taxonomy(t_db, create_ordering)
+            taxonomy, leaves_ordering = _read_categorical_taxonomy(
+                t_db,
+                create_ordering=create_ordering
+            )
             # taxonomy.show()
             g_dict['taxonomy_tree'] = taxonomy
             g_dict['taxonomy_ordering'] = leaves_ordering
