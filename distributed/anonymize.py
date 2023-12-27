@@ -180,7 +180,7 @@ def main():
     if fragmentation == 'mondrian':
         # Mondrian
         if is_parallel:
-            print(f"\n[*] Run {preposition} sampling and parallelization"
+            print(f"\n[*] Run {preposition} sampling and with parallelization"
                   f" - Mondrian cuts")
             df, bins = mondrian_with_parallelization(
                 df=df,
@@ -229,7 +229,7 @@ def main():
     elif fragmentation == 'quantile':
         # Quantile
         if is_parallel:
-            print(f"\n[*] Run {preposition} sampling and parallelization"
+            print(f"\n[*] Run {preposition} sampling and with parallelization"
                   f" - Quantile cuts")
             pdf = df.pandas_api()
         else:
