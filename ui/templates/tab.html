@@ -56,22 +56,31 @@
         <p><input type="number" placeholder="A number between 0 and 1..." oninput="this.className = ''" onchange='checkFractionValue()' min=0 step=0.05 max=1 id='fractionInput' name="fraction"></p>
         <label for="fragmentation">Fragmentation</label></br>
         <p><select id="fragmentation" name="fragmentation">
-            <option value="mondrian">Mondrian</option>
             <option value="quantile">Quantile</option>
+            <option value="mondrian">Mondrian</option>
         </select></p>
+        <label for="parallelization_checkbox">Parallelized run:</label>
+        <input type="checkbox" oninput="this.className = ''" id="parallelization_checkbox" name="parallelization_checkbox">
     </div>
+    <br>
     <label for="column_score">Column scoring function</label><br/>
     <p><select id="column_score" name="column_score">
+        <option value="norm_span">Normalized Span</option>
+        <option value="span">Span</option>
         <option value="entropy">Entropy</option>
         <option value="neg_entropy">Negative Entropy</option>
-        <option value="span">Span</option>
     </select></p>
     <label for="technique">Anonymization technique:</label><br/>
     <p id="technique">
+        <div id="k-flat-div">
+                <input type="checkbox" id="k-flat" name="k-flat" value="on">
+                <label for="k-flat">k-flat</label><br/>
+        </div>
         <input type="checkbox" onchange="toggle('k-anonymity')" id="k-anonymity" name="k-anonymity" value="on">
         <label for="k-anonymity">k-anonymity</label><br/>
         <input type="checkbox" onchange="toggle('l-diversity')" id="l-diversity" name="l-diversity" value="on">
         <label for="l-diversity">l-diversity</label><br/>
+        <br>
         <div class="k-anonymity">
             <label for="k">K</label><br/>
             <p><input type="number" placeholder="A positive integer value..." oninput="this.className = ''" min=1 id="k" name="k"></p>

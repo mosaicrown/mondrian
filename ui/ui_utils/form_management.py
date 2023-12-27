@@ -44,10 +44,14 @@ def generalizationRecord(form, files,quasi_identifiers, distributed, app):
             params['taxonomy_tree'] = os.path.join(app.root_path,
              '/mondrian/taxonomy/{}'.format(file.filename)) if distributed else 'taxonomy/{}'.format(file.filename)
 
+            if "taxonomy_ordering_{}".format(qi) in form and form["taxonomy_ordering_{}".format(qi)] == 'on':
+                params["create_ordering"] = True
+
         if qi_type == 'numerical':
             params['fanout'] = int(form['fanout_{}'.format(qi)])
             params['digits'] = int(form['digits_{}'.format(qi)])
             params['accuracy'] = int(form['accuracy_{}'.format(qi)])
+
         if qi_type == 'common_prefix':
             params['hide-mark'] = form['hidemark_{}'.format(qi)]
         record['params'] = params

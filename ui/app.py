@@ -59,7 +59,9 @@ def readForm():
                 'sensitive_columns' : request.form.getlist('sensitive'),
                 'column_score' : request.form['column_score'],
                 'measures' : recoverMeasures(request.form),
-                'fragmentation' : request.form['fragmentation']
+                'fragmentation' : request.form['fragmentation'],
+                'parallel': True if 'parallelization_checkbox' in request.form and request.form['parallelization_checkbox'] == 'on' else False,
+                'k_flat': True if 'k-flat' in request.form and request.form['k-flat'] == 'on' else False
                 }
 
         # process the generalization used on the quasi-identifiers
@@ -86,7 +88,7 @@ def readForm():
                           '../local/config/{}_ui.json'.format(file_name))
 
         with open(json_path, 'w') as f:
-            dump(dict, f)
+            dump(dict, f, indent=2)
 
         # call the job based on configurations and tool version
         if distributed:

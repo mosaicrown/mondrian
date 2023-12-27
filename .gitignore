@@ -210,6 +210,10 @@ distributed/dataset/transactions.csv
 local/anonymized
 distributed/anonymized
 
+# ui generated configs
+local/config/*_ui.json
+distributed/config/*_ui.json
+
 # Artifact temp file
 usa_*.csv
 percom_artifact_experiments/loss_measures.csv

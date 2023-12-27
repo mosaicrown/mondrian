@@ -113,22 +113,21 @@ function show(cls) {
     for (var i = 0; i < divs.length; i++) {
         divs[i].style.display = "block";
     }
+    if (cls == "local") {
+        document.getElementById("k-flat-div").setAttribute("style", "display: none;")
+    }else {
+        document.getElementById("k-flat-div").setAttribute("style", "display: block;")
+    }
 }
 
 function checkFractionValue(){
   var fractionElem = document.getElementById('fractionInput');
   var fraction = fractionElem.value
   var fragmentation = document.getElementById('fragmentation')
-  if (fraction < 1){
-    fragmentation.value = 'quantile'
-    fragmentation.setAttribute("disabled", true);
-  }else{
-
-    if (fraction > 1 || fraction < 0){
+  if (fraction > 1 || fraction < 0){
       fractionElem.value = "A number between 0 and 1..."
-    }else{
+  }else{
       fragmentation.removeAttribute("disabled");
-    }
   }
 }
 
@@ -236,9 +235,21 @@ function createGeneralizationDiv(column){
   div.appendChild(label)
   div.appendChild(paragraph)
 
+  var span_categorical_label = document.createElement("span")
+  span_categorical_label.setAttribute("style", "margin-right: 2em;")
+
+  var span_checkbox_label = document.createElement("span")
+  span_checkbox_label.setAttribute("style", "margin-right: 1em;")
+
   var categorical_label = document.createElement("label")
   categorical_label.setAttribute("for", "taxonomy_tree_" + column)
   categorical_label.appendChild(document.createTextNode('Taxonomy file for ' + column))
+  span_categorical_label.appendChild(categorical_label)
+
+  var categorical_checkbox_label = document.createElement("label")
+  categorical_checkbox_label.setAttribute("for", "taxonomy_ordering_" + column)
+  categorical_checkbox_label.appendChild(document.createTextNode('Use for ordering'))
+  span_checkbox_label.appendChild(categorical_checkbox_label)
 
   var file_taxonomy = document.createElement("input")
   file_taxonomy.setAttribute("type", "file")
@@ -247,10 +258,18 @@ function createGeneralizationDiv(column){
   file_taxonomy.setAttribute("name", "taxonomy_tree_" + column)
   file_taxonomy.setAttribute("enctype", "multipart/form-data")
 
+  var use_for_ordering = document.createElement("input")
+  use_for_ordering.setAttribute("type", "checkbox")
+  use_for_ordering.setAttribute("id", "taxonomy_ordering_" + column)
+  use_for_ordering.setAttribute("oninput", "this.className = ''")
+  use_for_ordering.setAttribute("name", "taxonomy_ordering_" + column)
+
   var file_div = document.createElement("div")
   file_div.setAttribute("id", "categorical_div_" + column)
   file_div.setAttribute("style", "display: none")
-  file_div.appendChild(categorical_label)
+  file_div.appendChild(span_categorical_label)
+  file_div.appendChild(span_checkbox_label)
+  file_div.appendChild(use_for_ordering)
   file_div.appendChild(document.createElement("br"))
   file_div.appendChild(file_taxonomy)
   div.appendChild(file_div)
