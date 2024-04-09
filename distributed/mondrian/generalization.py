@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import math
 from collections import defaultdict
 
@@ -20,6 +19,8 @@ import pandas as pd
 import treelib
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
+
+from utils import get_json_object
 
 
 class IncompleteGeneralizationInfo(Exception):
@@ -245,16 +246,13 @@ def generalize_to_lcp(values, taxonomy, taxonomy_min_val, fanout):
     return taxonomy.get_node(root).tag
 
 
-def _read_categorical_taxonomy(taxonomy_json, create_ordering=False, debug=False):
+def _read_categorical_taxonomy(client, taxonomy_json, create_ordering=False, debug=False):
     """
     Reads a taxonomy of categories from a json collection
     :taxonomy_json: The collection to be read
     :returns: The taxonomy tree
     """
-    # test setting
-    db = ""
-    with open(taxonomy_json) as f:
-        db = json.load(f)
+    db = get_json_object(client, taxonomy_json, "/tmp/taxonomy.json")
 
     taxonomy = treelib.Tree()
 
@@ -402,7 +400,7 @@ def generalize_to_cp(ser=None, debug=False, hidemark="*", t=None):
 
     return pref + suff
 
-def generalization_preproc(df, job):
+def generalization_preproc(df, job, client):
     """Anonymization preprocessing to arrange generalizations.
 
     :df: Dataframe to be anonymized
@@ -425,7 +423,7 @@ def generalization_preproc(df, job):
             create_ordering = g_dict['params'].get('create_ordering', False)
             if t_db is None:
                 raise IncompleteGeneralizationInfo()
-            taxonomy, leaves_ordering = _read_categorical_taxonomy(t_db, create_ordering)
+            taxonomy, leaves_ordering = _read_categorical_taxonomy(client, t_db, create_ordering)
             g_dict['taxonomy_tree'] = taxonomy
             g_dict['taxonomy_ordering'] = leaves_ordering
         elif g_dict['generalization_type'] == 'numerical':

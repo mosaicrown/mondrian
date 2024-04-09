@@ -14,14 +14,18 @@
 
 import argparse
 import functools
-import json
-import time
-
 import math
+import os
+import time
+from urllib.parse import urlparse
+
 import pandas as pd
+from minio import Minio
+from pyspark import SparkFiles
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
+
 from anonymization import anonymize
 from evaluation import discernability_penalty
 from evaluation import evaluate_information_loss
@@ -33,7 +37,10 @@ from fragmentation import quantile_buckets
 from fragmentation import quantile_fragmentation
 from generalization import generalization_preproc
 from score import entropy, neg_entropy, span, norm_span
-from utils import get_extension, get_quasiid_spans, repartition_dataframe
+from utils import get_extension
+from utils import get_json_object
+from utils import get_quasiid_spans
+from utils import repartition_dataframe
 from test import write_test_params
 from validation import get_validation_function
 
@@ -65,15 +72,12 @@ def main():
                         default=0,
                         type=int,
                         help='Start tool in test mode')
-  
+
     args = parser.parse_args()
     demo = args.DEMO
     test = args.TEST
 
     start_time = time.time()
-
-    with open(args.METADATA) as fp:
-        job = json.load(fp)
 
     # Create Spark Session
     spark = SparkSession \
@@ -90,6 +94,19 @@ def main():
         print("\n[*] Spark context initialized")
         print("\tWait for 10 seconds to continue demo...")
         time.sleep(10)
+
+    # Add python dependency files
+    mondrian_zip_path = SparkFiles.get("mondrian.zip")
+    spark.sparkContext.addPyFile(mondrian_zip_path)
+
+    # Read anonymization job config
+    print(f"\n[*] Reading anonymization job config from {args.METADATA}")
+    endpoint = spark.conf.get("spark.hadoop.fs.s3a.endpoint")
+    endpoint = urlparse(endpoint).netloc
+    access_key = os.getenv("AWS_ACCESS_KEY_ID")
+    secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+    client = Minio(endpoint, access_key, secret_key)
+    job = get_json_object(client, args.METADATA, "/tmp/config.json")
 
     # Parameters of the anonymization
     filename_in = job['input']
@@ -153,7 +170,7 @@ def main():
         df = df.withColumn(attribute, F.col(attribute).cast(T.StringType()))
     
     # Initialize taxonomies
-    df, quasiid_gnrlz = generalization_preproc(df, job)
+    df, quasiid_gnrlz = generalization_preproc(df, job, client)
     categoricals_with_order = {}
     if quasiid_gnrlz is not None:
         for qi in quasiid_gnrlz.values():

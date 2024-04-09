@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
+from urllib.parse import urlparse
+
 from pyspark.sql import functions as F
 
 
@@ -20,6 +23,16 @@ def get_extension(filename):
     if not sep:
         extension = None
     return extension
+
+
+def get_json_object(client, url, path):
+    url = urlparse(url)
+    result = client.fget_object(url.netloc, url.path, path)
+    print(f"Download {result.bucket_name}{result.object_name} with etag: "
+          f"{result.etag}")
+    with open(path) as file:
+        json_object = json.load(file)
+    return json_object
 
 
 def get_quasiid_spans(df, quasiid_columns):

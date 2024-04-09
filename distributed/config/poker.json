@@ -1,6 +1,6 @@
 {
-    "input": "hdfs://namenode:8020/dataset/poker.csv",
-    "output": "hdfs://namenode:8020/anonymized/poker.csv",
+    "input": "s3a://sanitization/dataset/poker.csv",
+    "output": "s3a://sanitization/anonymized/poker.csv",
     "fraction": 1,
     "id_columns": [],
     "redact": false,

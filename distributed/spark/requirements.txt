@@ -1,6 +1,7 @@
+binpacking==1.5.2
+minio==7.2.5
 numpy==1.26.2
 pandas==2.1.4
 pyarrow==14.0.2
 scipy==1.11.4
 treelib==1.7.0
-binpacking==1.5.2

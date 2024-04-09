@@ -1,6 +1,6 @@
 {
-    "input": "hdfs://namenode:8020/dataset/adults.csv",
-    "output": "hdfs://namenode:8020/anonymized/adults.csv",
+    "input": "s3a://sanitization/dataset/adults.csv",
+    "output": "s3a://sanitization/anonymized/adults.csv",
     "fraction": 1,
     "id_columns": ["capital-loss", "capital-gain"],
     "redact": true,
@@ -15,7 +15,7 @@
             "qi_name": "native-country",
             "generalization_type": "categorical",
             "params": {
-                "taxonomy_tree": "/mondrian/taxonomy/countries.json"
+                "taxonomy_tree": "s3a://sanitization/taxonomy/countries.json"
             }
         },
         {
