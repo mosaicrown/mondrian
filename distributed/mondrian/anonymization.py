@@ -87,16 +87,16 @@ def generalize_quasiid(df,
             df.loc[partition, column] = join_column(df[column][partition],
                                                     dtypes[column],
                                                     generalization)
-        h = len(partition) % k
-        n = math.floor(len(partition) / k) - h
-        elem = 0
         if flat:
-                for e in range(0,h):
-                    df.loc[partition[elem:elem + k + 1], "fragment"] = GID[fragment].pop(0)
-                    elem = elem + k + 1
-                for e in range(0,n):
-                    df.loc[partition[elem:elem + k], "fragment"] = GID[fragment].pop(0)
-                    elem = elem + k
+            h = len(partition) % k
+            n = math.floor(len(partition) / k) - h
+            elem = 0
+            for e in range(0,h):
+                df.loc[partition[elem:elem + k + 1], "fragment"] = GID[fragment].pop(0)
+                elem = elem + k + 1
+            for e in range(0,n):
+                df.loc[partition[elem:elem + k], "fragment"] = GID[fragment].pop(0)
+                elem = elem + k
 
     return df
 
