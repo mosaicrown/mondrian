@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-version: '3'
-
 services:
 
   spark-master:
@@ -61,13 +59,16 @@ services:
     image: apache/hadoop:3.3.6
     container_name: namenode
     command: ["hdfs", "namenode"]
-    env_file:
-      - ./hadoop.env
+    # env_file:
+    #   - ./hadoop.env
     environment:
       - ENSURE_NAMENODE_DIR=/tmp/hadoop-hadoop/dfs/name
     ports:
       - 8020:8020 # Hadoop
       - 9870:9870 # web UI
+    volumes:
+      - ${PWD}/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml
+      - ${PWD}/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml
       
   datanode:
     image: apache/hadoop:3.3.6
@@ -76,8 +77,11 @@ services:
       - namenode
     deploy:
       replicas: $DATANODES
-    env_file:
-      - ./hadoop.env
+    # env_file:
+    #   - ./hadoop.env
+    volumes:
+      - ${PWD}/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml
+      - ${PWD}/hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml
 
   init-hdfs:
     image: apache/hadoop:3.3.6
